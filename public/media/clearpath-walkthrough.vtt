@@ -1,0 +1,187 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:06.000
+A campaign is ready. Is it ready to launch?
+Follow Sarah in compliance and Alex in marketing as one affiliate campaign moves from risky copy to a defensible decision.
+Actual product interactions · Edited walkthrough · No audio needed
+
+2
+00:00:06.000 --> 00:00:13.000
+Start with the work that needs attention.
+Sarah opens a prioritized queue: escalations, distribution holds, and overdue reviews.
+THROUGHPUT: Reduce time spent reconstructing status from spreadsheets and email.
+
+3
+00:00:13.000 --> 00:00:18.000
+One campaign. All its context.
+Search brings Alex’s affiliate campaign into focus. Ownership, channel, version, and due date travel together.
+DESIGN CHOICE: A clear next action beats another inbox.
+
+4
+00:00:18.000 --> 00:00:27.000
+“Guaranteed approval” is a problem.
+Sarah sees the exact creative beside two advisory findings. The partner’s destination copy is part of the review too.
+EDGE CASE: A safe-looking ad can lead to a misleading landing page.
+
+5
+00:00:27.000 --> 00:00:35.000
+Feedback should be actionable.
+Sarah explains what must change: remove the promise, qualify eligibility, and clarify credit inquiries. Approval stays blocked.
+PRODUCT THINKING: Specific feedback reduces avoidable revision loops.
+
+6
+00:00:35.000 --> 00:00:41.000
+The next move belongs to Alex.
+The campaign changes state. Alex can read the feedback and revise the submitted creative.
+OWNERSHIP: One accountable owner; one visible handoff.
+
+7
+00:00:41.000 --> 00:00:50.000
+Change the copy. Keep the scope aligned.
+Alex revises both the advertisement and captured landing-page copy. The new wording qualifies approval and inquiry claims.
+EDGE CASE: Changing only the ad is insufficient when the destination still overpromises.
+
+8
+00:00:50.000 --> 00:00:58.000
+Version 2 starts a fresh review.
+The previous copy and review evidence remain available. New creative invalidates earlier evidence and sign-offs.
+AUDITABILITY: No approval silently follows changed creative.
+
+9
+00:00:58.000 --> 00:01:05.000
+The author cannot approve the work.
+Alex can submit the revision, but cannot approve it. The decision belongs to an independent compliance reviewer.
+SEPARATION OF DUTIES: These are local workflow identities, not authenticated accounts.
+
+10
+00:01:05.000 --> 00:01:12.000
+No flags does not mean cleared.
+Sarah resumes the review. The rewritten creative has no automated flags, but evidence and human checks are still required.
+HUMAN JUDGMENT: Pre-checks assist reviewers; they do not provide legal clearance.
+
+11
+00:01:12.000 --> 00:01:21.000
+Show the basis for the decision.
+Sarah records the product terms, source reference, and validity date. Evidence belongs to this creative version.
+EVIDENCE QUALITY: The source is a manual reference, not an automatically verified document.
+
+12
+00:01:21.000 --> 00:01:23.000
+Human review still matters.
+Verify terms, substantiate claims, and check the audience and distribution scope.
+ACCOUNTABILITY: Each completed check enters the activity history.
+
+13
+00:01:23.000 --> 00:01:24.000
+Human review still matters.
+Verify terms, substantiate claims, and check the audience and distribution scope.
+ACCOUNTABILITY: Each completed check enters the activity history.
+
+14
+00:01:24.000 --> 00:01:26.000
+Human review still matters.
+Verify terms, substantiate claims, and check the audience and distribution scope.
+ACCOUNTABILITY: Each completed check enters the activity history.
+
+15
+00:01:26.000 --> 00:01:35.000
+A small date error. A meaningful safeguard.
+Sarah first chooses December 31. The evidence expires December 15, so approval remains disabled.
+EDGE CASE: An approval cannot outlive its supporting evidence.
+
+16
+00:01:35.000 --> 00:01:41.000
+Now the decision is supported.
+Sarah shortens the approval period, records her rationale, and completes the required checks.
+REVIEW GATE: Version, evidence, policy, scope, and reviewer must all align.
+
+17
+00:01:41.000 --> 00:01:50.000
+Launch ready. For this exact version.
+The approval stores an exportable snapshot of the creative, evidence, scope, policy, reviewer, and rationale.
+PRODUCT THINKING: “Approved” is a recorded decision, not a permanent label.
+
+18
+00:01:50.000 --> 00:01:56.000
+Then the rules change.
+A new eligibility requirement affects personal-loan advertising. Sarah opens the versioned policy library.
+LIFECYCLE: Compliance continues after the first approval.
+
+19
+00:01:56.000 --> 00:02:04.000
+See the impact before publishing.
+The policy update identifies two approved campaigns that will need re-review. Sarah documents what changed.
+CHANGE MANAGEMENT: Make the consequences visible before confirming.
+
+20
+00:02:04.000 --> 00:02:13.000
+Yesterday’s approval is not today’s clearance.
+Alex’s campaign moves to a distribution hold because it was reviewed under the previous policy version.
+EDGE CASE: Policy changes remove launch clearance without rewriting history.
+
+21
+00:02:13.000 --> 00:02:21.000
+Stop distribution. Keep the evidence.
+Sarah records why the placement must stop while disclosures are corrected and independently reviewed again.
+CONTROL: Revocation requires lead authority and a meaningful reason.
+
+22
+00:02:21.000 --> 00:02:30.000
+The whole story is still here.
+The activity chain connects feedback, revision, evidence, approval, policy change, and revocation.
+AUDIT TRAIL: A reviewer can explain what happened and why.
+
+23
+00:02:30.000 --> 00:02:36.000
+Revoke the clearance, not the record.
+The original approval snapshot is still exportable, along with the earlier creative version and its review evidence.
+RETENTION: Historical decisions stay distinct from current launch readiness.
+
+24
+00:02:36.000 --> 00:02:44.000
+Manage capacity and distribution risk.
+The overview separates open reviews from approval holds and shows reviewer workload and descriptive cycle-time metrics.
+MEASUREMENT: Demo metrics are not proof of a throughput improvement.
+
+25
+00:02:44.000 --> 00:02:51.000
+When Sarah is busy, ownership can move.
+A reasoned handoff sends another campaign to Jamie. Reviewer attestations reset; evidence and history remain.
+EDGE CASE: The new reviewer must verify the work, not inherit unchecked confidence.
+
+26
+00:02:51.000 --> 00:02:59.000
+Automation will miss things.
+Jamie adds a manual finding about disclosure prominence—something a simple text pre-check cannot assess.
+HUMAN OVERSIGHT: The workflow supports reviewer judgment beyond the rule engine.
+
+27
+00:02:59.000 --> 00:03:08.000
+Bring your team. Bring your campaign.
+Priya and Jordan are custom local identities. Anyone can test the workflow with their own names, content, and review ownership.
+SELF-SERVE: No invitations are sent. Data remains in this browser.
+
+28
+00:03:08.000 --> 00:03:17.000
+Paste it. Import it. Put it through review.
+Import a .txt or .md file, or paste campaign copy. Choose a reviewer and capture the actual distribution scope.
+SAFE IMPORT: Files are read locally. Invalid files are rejected; existing copy is not silently overwritten.
+
+29
+00:03:17.000 --> 00:03:24.000
+Your content. The same safeguards.
+Priya’s imported campaign is assigned to Jordan. A custom reviewer follows the same evidence, checklist, and approval rules as the sample team.
+EXTENSIBILITY: This is a working intake flow, not a fixed sequence of demo screens.
+
+30
+00:03:24.000 --> 00:03:32.000
+Two tabs must not overwrite each other.
+A change in one tab warns the other. Stale writes are blocked until the workspace is refreshed; typed form drafts remain available.
+PRODUCTION THINKING: Web Locks and revision checks prevent accidental lost updates within one browser.
+
+31
+00:03:32.000 --> 00:03:41.000
+Faster reviews. Clearer accountability.
+Try your own campaign in the live app. Paste copy or import a .txt/.md file, then choose an independent reviewer.
+Browser-local prototype · No real authentication or shared backend: Production requires server-side roles, durable storage, and protected audit retention.

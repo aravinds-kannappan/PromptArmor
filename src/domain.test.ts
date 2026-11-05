@@ -449,3 +449,87 @@ describe("sample chronology", () => {
     }
   });
 });
+
+describe("custom workspace identities", () => {
+  it("supports custom owner and reviewer through approval without sample identities", () => {
+    let w = seedWorkspace();
+    w = act(w, { type: "member", name: "Priya Shah", role: "Marketing owner" });
+    w = act(w, {
+      type: "member",
+      name: "Jordan Ellis",
+      role: "Compliance reviewer",
+    });
+    w = act(
+      w,
+      { type: "submit", data: { ...brief(), reviewer: "Jordan Ellis" } },
+      "Priya Shah",
+    );
+    const id = w.campaigns[0].id;
+    expect(w.campaigns[0].reviewer).toBe("Jordan Ellis");
+    w = act(
+      w,
+      {
+        type: "evidence",
+        id,
+        data: {
+          title: "My approved terms",
+          reference: "https://example.com/terms",
+          excerpt:
+            "Approved fictional offer terms with eligibility and APR qualifications.",
+          validThrough: dayOffset(30),
+        },
+      },
+      "Priya Shah",
+    );
+    for (const check of checks)
+      w = act(w, { type: "check", id, check, checked: true }, "Jordan Ellis");
+    w = act(
+      w,
+      { type: "approve", id, expires: dayOffset(10), note },
+      "Jordan Ellis",
+    );
+    expect(w.campaigns[0].status).toBe("Approved");
+    expect(launchBlockers(w.campaigns[0], 2)).toEqual([]);
+  });
+  it("supports custom leads and rejects duplicate normalized names", () => {
+    let w = act(seedWorkspace(), {
+      type: "member",
+      name: "Morgan Patel",
+      role: "Compliance lead",
+    });
+    w = act(
+      w,
+      {
+        type: "policy",
+        product: "Mortgage",
+        summary: "New underwriting qualifications require review.",
+      },
+      "Morgan Patel",
+    );
+    expect(currentPolicy(w, "Mortgage")).toBe(3);
+    expect(() =>
+      act(w, {
+        type: "member",
+        name: "  MORGAN   PATEL ",
+        role: "Marketing owner",
+      }),
+    ).toThrow("already exists");
+  });
+  it("rejects author assignment and invalid custom roles", () => {
+    const w = act(seedWorkspace(), {
+      type: "member",
+      name: "Priya Shah",
+      role: "Compliance reviewer",
+    });
+    expect(() =>
+      act(
+        w,
+        { type: "submit", data: { ...brief(), reviewer: "Priya Shah" } },
+        "Priya Shah",
+      ),
+    ).toThrow("independent");
+    expect(() =>
+      act(w, { type: "member", name: "Test Person", role: "Admin" as never }),
+    ).toThrow("supported");
+  });
+});

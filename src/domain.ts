@@ -96,7 +96,14 @@ export type Policy = {
   at: string;
   by: string;
 };
+export const memberRoles = [
+  "Marketing owner",
+  "Compliance reviewer",
+  "Compliance lead",
+] as const;
+export type Member = { name: string; role: (typeof memberRoles)[number] };
 export type Workspace = {
+  members?: Member[];
   schema: 2;
   revision: number;
   campaigns: Campaign[];
@@ -120,14 +127,23 @@ export const validDay = (s: string) =>
   new Date(s).toISOString().slice(0, 10) === s;
 export const normalize = (s: string) =>
   s.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
-export const isReviewer = (p: string) =>
-  p === "Sarah Chen" || p === "Jamie Lee";
-export const role = (p: string) =>
-  p === "Sarah Chen"
-    ? "Compliance lead"
-    : p === "Jamie Lee"
-      ? "Compliance reviewer"
-      : "Marketing owner";
+export const defaultMembers: Member[] = people.map((name) => ({
+  name,
+  role:
+    name === "Sarah Chen"
+      ? "Compliance lead"
+      : name === "Jamie Lee"
+        ? "Compliance reviewer"
+        : "Marketing owner",
+}));
+export const membersOf = (w?: Workspace): Member[] =>
+  w?.members ?? defaultMembers;
+export const role = (name: string, w?: Workspace) =>
+  membersOf(w).find((m) => m.name === name)?.role ?? "Unknown identity";
+export const isLead = (name: string, w?: Workspace) =>
+  role(name, w) === "Compliance lead";
+export const isReviewer = (name: string, w?: Workspace) =>
+  ["Compliance reviewer", "Compliance lead"].includes(role(name, w));
 export function safeUrl(s: string) {
   try {
     const u = new URL(s);
@@ -236,9 +252,11 @@ export function approvalError(
   reviewer: string,
   today = localDay(),
   policyVersion = c.policyVersion,
+  workspace?: Workspace,
 ): string | null {
   if (c.status !== "In review") return "Only an active review can be approved.";
-  if (!isReviewer(reviewer)) return "Only compliance reviewers can approve.";
+  if (!isReviewer(reviewer, workspace))
+    return "Only compliance reviewers can approve.";
   if (c.owner === reviewer || c.contributors.includes(reviewer))
     return "Authors and contributors cannot approve their own creative.";
   if (c.reviewer !== reviewer) return "Only the assigned reviewer can decide.";
@@ -299,6 +317,7 @@ export function snapshot(
   });
 }
 export type Intake = {
+  reviewer?: string;
   title: string;
   copy: string;
   product: string;
@@ -310,6 +329,7 @@ export type Intake = {
   destinationCopy: string;
 };
 export type Action =
+  | { type: "member"; name: string; role: Member["role"] }
   | { type: "submit"; data: Intake }
   | { type: "assign"; id: string; reviewer: string; reason: string }
   | {
@@ -365,15 +385,34 @@ export function applyAction(
   at = new Date().toISOString(),
 ): Workspace {
   requireThat(
-    people.includes(actor as (typeof people)[number]),
+    membersOf(state).some((m) => m.name === actor),
     "Unknown demo identity.",
   );
   const w = structuredClone(state);
   const event = (c: Campaign, text: string) =>
     c.history.unshift({ at, text: `${actor}: ${text}` });
-  if (action.type === "policy") {
+  if (action.type === "member") {
+    const name = action.name.normalize("NFKC").trim().replace(/\s+/g, " ");
     requireThat(
-      actor === "Sarah Chen",
+      name.length >= 2 && name.length <= 60,
+      "Use a name between 2 and 60 characters.",
+    );
+    requireThat(
+      memberRoles.includes(action.role),
+      "Select a supported workspace role.",
+    );
+    requireThat(
+      !membersOf(w).some((m) => normalize(m.name) === normalize(name)),
+      "A team member with this name already exists.",
+    );
+    requireThat(
+      membersOf(w).length < 50,
+      "This browser workspace supports up to 50 local identities.",
+    );
+    w.members = [...membersOf(w), { name, role: action.role }];
+  } else if (action.type === "policy") {
+    requireThat(
+      isLead(actor, w),
       "Only the compliance lead can publish policy changes.",
     );
     requireThat(
@@ -444,12 +483,24 @@ export function applyAction(
       ),
       "This title or exact creative already exists for this distribution scope. Open the existing campaign or use a distinct brief.",
     );
+    requireThat(
+      membersOf(w).some(
+        (m) =>
+          m.name !== actor &&
+          isReviewer(m.name, w) &&
+          (!d.reviewer || m.name === d.reviewer),
+      ),
+      "Choose an independent compliance reviewer.",
+    );
     const c: Campaign = {
       ...d,
       id: `CP-${Math.max(1048, ...w.campaigns.map((x) => Number(x.id.slice(3)))) + 1}`,
       owner: actor,
       contributors: [actor],
-      reviewer: actor === "Sarah Chen" ? "Jamie Lee" : "Sarah Chen",
+      reviewer:
+        d.reviewer ||
+        membersOf(w).find((m) => m.name !== actor && isReviewer(m.name, w))!
+          .name,
       status: "In review",
       version: 1,
       policyVersion: currentPolicy(w, d.product),
@@ -477,7 +528,7 @@ export function applyAction(
     const reviewer = () => {
       active();
       requireThat(
-        isReviewer(actor) &&
+        isReviewer(actor, w) &&
           c.reviewer === actor &&
           !c.contributors.includes(actor) &&
           c.owner !== actor,
@@ -487,7 +538,7 @@ export function applyAction(
     switch (action.type) {
       case "assign":
         requireThat(
-          actor === "Sarah Chen" || actor === c.reviewer,
+          isLead(actor, w) || actor === c.reviewer,
           "Only the lead or current reviewer can hand off a review.",
         );
         requireThat(
@@ -495,7 +546,7 @@ export function applyAction(
           "Reopen the campaign before changing ownership.",
         );
         requireThat(
-          isReviewer(action.reviewer) &&
+          isReviewer(action.reviewer, w) &&
             !c.contributors.includes(action.reviewer) &&
             c.owner !== action.reviewer &&
             c.reviewer !== action.reviewer,
@@ -559,9 +610,7 @@ export function applyAction(
       case "evidence":
         requireThat(
           c.status === "In review" &&
-            (actor === c.owner ||
-              actor === c.reviewer ||
-              actor === "Sarah Chen"),
+            (actor === c.owner || actor === c.reviewer || isLead(actor, w)),
           "Evidence can be added by the owner or assigned reviewer during review.",
         );
         requireThat(
@@ -613,6 +662,7 @@ export function applyAction(
           actor,
           today,
           currentPolicy(w, c.product),
+          w,
         );
         requireThat(!error, error || "Approval blocked.");
         reason(action.note);
@@ -682,7 +732,7 @@ export function applyAction(
         break;
       case "reopen":
         requireThat(
-          (actor === c.reviewer || actor === "Sarah Chen") &&
+          (actor === c.reviewer || isLead(actor, w)) &&
             ["Approved", "Revoked"].includes(c.status),
           "Only the reviewer or lead can reopen an approved or revoked campaign.",
         );
@@ -698,7 +748,7 @@ export function applyAction(
         break;
       case "revoke":
         requireThat(
-          actor === "Sarah Chen" && c.status === "Approved",
+          isLead(actor, w) && c.status === "Approved",
           "Only the compliance lead can revoke an approved campaign.",
         );
         reason(action.reason);
@@ -707,8 +757,7 @@ export function applyAction(
         break;
       case "withdraw":
         requireThat(
-          (actor === c.owner || actor === "Sarah Chen") &&
-            c.status !== "Withdrawn",
+          (actor === c.owner || isLead(actor, w)) && c.status !== "Withdrawn",
           "Only the owner or lead can withdraw a campaign.",
         );
         reason(action.reason);
@@ -720,7 +769,8 @@ export function applyAction(
         break;
       case "escalate":
         requireThat(
-          c.status === "In review" && (actor === c.owner || isReviewer(actor)),
+          c.status === "In review" &&
+            (actor === c.owner || isReviewer(actor, w)),
           "Only active reviews can be escalated.",
         );
         reason(action.reason);
@@ -729,7 +779,7 @@ export function applyAction(
         break;
       case "clearEscalation":
         requireThat(
-          actor === "Sarah Chen" && !!c.escalated,
+          isLead(actor, w) && !!c.escalated,
           "Only the compliance lead can clear an escalation.",
         );
         reason(action.reason);
@@ -926,6 +976,7 @@ export function seed(): Campaign[] {
 export function seedWorkspace(): Workspace {
   return {
     schema: 2,
+    members: structuredClone(defaultMembers),
     revision: 0,
     campaigns: seed(),
     policies: products.flatMap((product) => [
@@ -991,6 +1042,20 @@ export function validateWorkspace(value: unknown): asserts value is Workspace {
       Array.isArray(w.campaigns),
     "Workspace format is invalid.",
   );
+  if (w.members !== undefined)
+    requireThat(
+      Array.isArray(w.members) &&
+        w.members.length > 0 &&
+        w.members.every(
+          (m) =>
+            typeof m.name === "string" &&
+            m.name.length >= 2 &&
+            memberRoles.includes(m.role),
+        ) &&
+        new Set(w.members.map((m) => normalize(m.name))).size ===
+          w.members.length,
+      "Invalid workspace team.",
+    );
   const ids = new Set<string>();
   for (const c of w.campaigns) {
     requireThat(

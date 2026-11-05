@@ -1,24 +1,98 @@
 import { useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { channels, products, type Intake, type Action } from "../domain";
+import {
+  channels,
+  products,
+  type Intake,
+  type Action,
+  type Workspace,
+  membersOf,
+  isReviewer,
+} from "../domain";
+import { importCopy } from "../import-copy";
 import { Dialog } from "./shared";
 export function Submission({
   today,
   onClose,
   run,
+  workspace,
+  person,
 }: {
+  workspace: Workspace;
+  person: string;
   today: string;
   onClose: () => void;
   run: (a: Action) => Promise<boolean>;
 }) {
   const [channel, setChannel] = useState("Affiliate"),
     [busy, setBusy] = useState(false);
+  const [copy, setCopy] = useState(""),
+    [importError, setImportError] = useState(""),
+    [pendingCopy, setPendingCopy] = useState("");
   return (
     <Dialog title="Start with a clear brief." onClose={onClose}>
       <p className="muted">
         Capture the exact creative and distribution scope. Evidence can be added
         during review.
       </p>
+      <div className="import-copy">
+        <label>
+          Import your campaign copy (.txt / .md)
+          <input
+            type="file"
+            accept=".txt,.md,text/plain,text/markdown"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setImportError("");
+              try {
+                const text = await importCopy(file);
+                if (copy.trim()) setPendingCopy(text);
+                else setCopy(text);
+              } catch (err) {
+                setImportError(
+                  err instanceof Error
+                    ? err.message
+                    : "File could not be imported.",
+                );
+              }
+            }}
+          />
+        </label>
+        <small>
+          Read locally, never uploaded. Plain text only, up to 5,000 characters.
+        </small>
+        {importError && (
+          <p role="alert" className="inline-error">
+            {importError}
+          </p>
+        )}
+        {pendingCopy && (
+          <div className="inline-error">
+            Replace your existing copy with this file?
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setPendingCopy("")}
+              >
+                Keep existing copy
+              </button>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  setCopy(pendingCopy);
+                  setPendingCopy("");
+                }}
+              >
+                Replace copy
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -29,6 +103,16 @@ export function Submission({
           setBusy(false);
         }}
       >
+        <label>
+          Assigned reviewer
+          <select name="reviewer" required>
+            {membersOf(workspace)
+              .filter((m) => m.name !== person && isReviewer(m.name, workspace))
+              .map((m) => (
+                <option key={m.name}>{m.name}</option>
+              ))}
+          </select>
+        </label>
         <label>
           Campaign name
           <input
@@ -93,6 +177,8 @@ export function Submission({
           Exact campaign copy
           <textarea
             name="copy"
+            value={copy}
+            onChange={(e) => setCopy(e.target.value)}
             required
             minLength={20}
             maxLength={5000}

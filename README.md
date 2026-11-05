@@ -2,7 +2,7 @@
 
 **[Live project](https://aravinds-kannappan.github.io/PromptArmor/)** · **[GitHub repository](https://github.com/aravinds-kannappan/PromptArmor)**
 
-A browser-local compliance review product for the fictional ClearPath Financial take-home. No account, backend, or API key required. Open **Demo scenarios** in the app for nine guided examples explaining the product decisions.
+A browser-local compliance review product for the fictional ClearPath Financial take-home. No account, backend, or API key required. Watch the **[captioned product walkthrough](https://aravinds-kannappan.github.io/PromptArmor/walkthrough.html)** for a story-driven tour of the actual product. No audio required.
 
 ## Short product report
 
@@ -14,6 +14,8 @@ A browser-local compliance review product for the fictional ClearPath Financial 
 
 ### What is implemented
 
+- **Bring your own work:** add custom local team members (owner, reviewer, lead), select an independent reviewer at intake, and paste or import `.txt`/`.md` campaign copy. Samples remain available. Names, copy, partners, audience, and scope are editable inputs, not fixed demo paths. Imports stay local, validate encoding/type/size, and confirm before replacing existing copy.
+- **Captioned video:** a story-led walkthrough of real app interactions with visual explanations of edge cases, workflow tradeoffs, and production boundaries; available from the sidebar or the standalone watch link above.
 - **Structured intake:** product, channel, partner, audience/geographic scope, deadline, exact creative, and affiliate destination capture. Normalized duplicate checks prevent repeated briefs and identical creative in the same distribution scope.
 - **Prioritized review queue:** escalations and distribution holds ahead of overdue reviews, then due dates; search, product/channel filters, assigned work, launch-ready and closed views.
 - **Evidence-based decisions:** version-bound source references and terms excerpts, evidence expiration, manual findings, reasoned resolutions, required human checks, and approval rationale. Approval cannot outlive its evidence.
@@ -45,19 +47,9 @@ A browser-local compliance review product for the fictional ClearPath Financial 
 | A campaign is cancelled                                           | Owner or lead withdraws it with a reason; the closed record remains in the audit.                                                                |
 | A tab remains open past midnight                                  | Expiration recalculates on the local date, refreshed every 30 seconds and on every command. Approval is inclusive through its recorded end date. |
 
-### Five-minute demo
-
-1. Open **Demo scenarios → Approval needs evidence**. For `CP-1045`, inspect sample evidence, complete the checklist, set a future expiry within evidence validity, and add a meaningful decision rationale. Approve and export the snapshot from **Versions**.
-2. Revoke that approval with a reason. Show that the current state blocks distribution but the original snapshot remains.
-3. Open **Policy library** as Sarah Chen. Publish a revised Mortgage policy after inspecting the impact count. The previously launch-ready mortgage campaign becomes a policy hold. Reopen it, acknowledge the policy, and verify that checks must be repeated.
-4. Open the requested mortgage revision as **Alex Morgan**. Change the copy or audience and resubmit. Evidence and sign-offs reset; Alex cannot approve. Switch back to the assigned compliance reviewer.
-5. Open two tabs. Save a review change in one. The other shows a stale-workspace warning and rejects a save until refreshed.
-
-Use **Reset demo** to restore all eight sample campaigns. Reset requires confirmation; export first if you want to keep your work. Existing users see their migrated records rather than losing them to the new sample set.
-
 ### Scope and honest limitations
 
-Per the requested hosting constraint, the application remains on **GitHub Pages with browser-local storage**. It has no backend, real authentication, cross-device sharing, scheduled jobs, external notifications, OCR, file upload, or live affiliate monitoring. The role switcher and workflow restrictions demonstrate product behavior; users can edit browser storage or source, so neither roles nor audit records are a security boundary. Supporting evidence is a manually captured excerpt plus reference URL, not a fetched or independently verified document. Policy content and pre-checks are illustrative, not legal guidance or a complete compliance ruleset.
+Per the requested hosting constraint, the application remains on **GitHub Pages with browser-local storage**. It has no backend, real authentication, cross-device sharing, scheduled jobs, external notifications, OCR, remote file upload, or live affiliate monitoring. The local identity switcher and workflow restrictions demonstrate product behavior; users can edit browser storage or source, so neither roles nor audit records are a security boundary. Supporting evidence is a manually captured excerpt plus reference URL, not a fetched or independently verified document. Policy content and pre-checks are illustrative, not legal guidance or a complete compliance ruleset.
 
 All mutations pass through the same tested workflow command layer. Browser-local locking prevents accidental cross-tab lost updates; it does not protect against hostile clients or other users/devices. Web Locks requires a current browser in a secure context (HTTPS or localhost); unsupported browsers remain read-only rather than silently saving unsafely. Drafts are retained in open forms after save errors and stale-state refreshes, but are not durable draft storage. Closing or navigating away can lose unsaved text; modal forms provide discard/unload warnings.
 
@@ -79,8 +71,14 @@ React + TypeScript + Vite, Lucide icons, locally bundled DM Sans and Manrope. No
 
 ## Verification
 
-- **46 automated tests** cover decision gates, date boundaries, evidence lifecycle, policy changes, escalation, authorship, handoff, revisions, revocation, withdrawal, duplicate intake, advisory precision, URL safety, record migration, corruption recovery, stale writes, and quota failures.
+- **53 automated tests** cover decision gates, date boundaries, evidence lifecycle, policy changes, escalation, authorship, handoff, revisions, revocation, withdrawal, duplicate intake, advisory precision, URL safety, record migration, corruption recovery, stale writes, quota failures, custom team roles, independent custom-reviewer approval, and text-file import validation.
 - TypeScript and production build pass.
-- Browser verification covers launch-ready approval and snapshots, revocation, policy-change holds, cross-tab notifications, and modal draft-discard protection.
+- Browser verification covers launch-ready approval and snapshots, revocation, policy-change holds, cross-tab notifications, modal draft-discard protection, custom team setup, local text import, and video playback/chapter seeking.
 
 No real customer data or lending decisions belong in this fictional demo.
+
+## Walkthrough media
+
+The MP4 is served directly by GitHub Pages from `public/media/`. On-screen captions carry the narration; a WebVTT track and chapter navigation are also provided. The video uses actual captured product states, editorial cuts, focus crops, and animated explanatory text. It is not an unedited screen recording or a simulation of unimplemented features.
+
+Source captures are in `media-source/frames/`; `scripts/render_walkthrough.py` assembles them with Pillow and imageio-ffmpeg. These are authoring dependencies, not app/runtime dependencies. The renderer supports macOS Arial or Linux DejaVu fonts.

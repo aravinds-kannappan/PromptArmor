@@ -17,7 +17,8 @@ import {
   currentPolicy,
   isReviewer,
   launchBlockers,
-  people,
+  membersOf,
+  isLead,
   safeUrl,
   type Action,
   type Campaign,
@@ -42,12 +43,18 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
   const policy = currentPolicy(workspace, c.product),
     blockers = launchBlockers(c, policy, today);
   const independent =
-    isReviewer(person) &&
+    isReviewer(person, workspace) &&
     c.reviewer === person &&
     !c.contributors.includes(person) &&
     c.owner !== person;
   const canReview = c.status === "In review" && independent;
-  const error = approvalError({ ...c, expires }, person, today, policy);
+  const error = approvalError(
+    { ...c, expires },
+    person,
+    today,
+    policy,
+    workspace,
+  );
   const perform = async (a: Action) => {
     if (busy) return false;
     setBusy(true);
@@ -86,7 +93,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
           Due <b>{displayDate(c.due)}</b>
         </span>
         {["In review", "Changes requested", "Revoked"].includes(c.status) &&
-          (person === "Sarah Chen" || person === c.reviewer) && (
+          (isLead(person, workspace) || person === c.reviewer) && (
             <button className="text-button" onClick={() => setModal("assign")}>
               Hand off review
             </button>
@@ -114,7 +121,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
             <b>Escalated to compliance lead</b>
             <p>{c.escalated}</p>
           </div>
-          {person === "Sarah Chen" && (
+          {isLead(person, workspace) && (
             <button
               className="secondary"
               onClick={() => reasonAction("clearEscalation")}
@@ -395,7 +402,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                   {c.status === "In review" &&
                     (person === c.owner ||
                       person === c.reviewer ||
-                      person === "Sarah Chen") && (
+                      isLead(person, workspace)) && (
                       <button
                         className="secondary"
                         onClick={() => setModal("evidence")}
@@ -619,14 +626,15 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     <Check size={16} /> Approve
                   </button>
                 </div>
-                {!c.escalated && (person === c.owner || isReviewer(person)) && (
-                  <button
-                    className="text-button space-top"
-                    onClick={() => reasonAction("escalate")}
-                  >
-                    Escalate for lead review
-                  </button>
-                )}
+                {!c.escalated &&
+                  (person === c.owner || isReviewer(person, workspace)) && (
+                    <button
+                      className="text-button space-top"
+                      onClick={() => reasonAction("escalate")}
+                    >
+                      Escalate for lead review
+                    </button>
+                  )}
               </>
             ) : (
               <>
@@ -646,7 +654,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                 </p>
                 <div className="decision-buttons">
                   {["Approved", "Revoked"].includes(c.status) &&
-                    (person === c.reviewer || person === "Sarah Chen") && (
+                    (person === c.reviewer || isLead(person, workspace)) && (
                       <button
                         className="secondary"
                         onClick={() => reasonAction("reopen")}
@@ -654,7 +662,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                         Reopen review
                       </button>
                     )}
-                  {c.status === "Approved" && person === "Sarah Chen" && (
+                  {c.status === "Approved" && isLead(person, workspace) && (
                     <button
                       className="danger-button"
                       onClick={() => reasonAction("revoke")}
@@ -666,7 +674,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
               </>
             )}
             {c.status !== "Withdrawn" &&
-              (person === c.owner || person === "Sarah Chen") && (
+              (person === c.owner || isLead(person, workspace)) && (
                 <button
                   className="text-button space-top"
                   onClick={() => reasonAction("withdraw")}
@@ -768,10 +776,11 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                 <label>
                   New reviewer
                   <select name="reviewer" required>
-                    {people
+                    {membersOf(workspace)
+                      .map((m) => m.name)
                       .filter(
                         (p) =>
-                          isReviewer(p) &&
+                          isReviewer(p, workspace) &&
                           p !== c.reviewer &&
                           p !== c.owner &&
                           !c.contributors.includes(p),

@@ -1944,3 +1944,133 @@ dialog label {
 .inline-error .modal-actions {
   margin-top: 12px;
 }
+.walkthrough-player video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  background: #122d25;
+}
+.walkthrough-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+}
+.walkthrough-details p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6c7c64;
+  margin-top: 8px;
+}
+.walkthrough-details a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .walkthrough-details {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px;
+  }
+}
+.own-work-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  border: 1px dashed #cbdcc1;
+  padding: 17px 20px;
+  margin: 0 0 22px;
+  border-radius: 9px;
+  background: #f1f6eb;
+}
+.own-work-banner b {
+  font-size: 13px;
+  color: #4e6e40;
+}
+.own-work-banner p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #708264;
+  margin-top: 5px;
+}
+.team-panel {
+  padding: 25px;
+}
+.team-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 24px 0;
+}
+.team-card {
+  border: 1px solid #e0e6d8;
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.team-card > div {
+  flex: 1;
+  min-width: 0;
+}
+.team-card h3 {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.team-card p {
+  font-size: 10px;
+  color: #728369;
+  margin-top: 4px;
+}
+.team-card .secondary {
+  font-size: 10px;
+  padding: 8px;
+  white-space: normal;
+}
+.import-copy {
+  background: #f2f6ec;
+  padding: 14px;
+  border: 1px solid #dfe8d6;
+  border-radius: 7px;
+  margin-bottom: 18px;
+}
+.import-copy input {
+  font-size: 11px;
+  background: white;
+}
+.import-copy small {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.6;
+}
+@media (max-width: 1000px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+  .own-work-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .team-panel {
+    padding: 17px;
+  }
+  .team-card {
+    flex-wrap: wrap;
+  }
+  .team-card .secondary {
+    margin-left: 46px;
+  }
+}
+.decision > .text-button {
+  display: flex;
+  width: fit-content;
+  margin-right: 16px;
+}

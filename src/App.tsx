@@ -18,15 +18,17 @@ import {
   SlidersHorizontal,
   X,
   AlertTriangle,
-  FlaskConical,
+  PlayCircle,
+  Users,
 } from "lucide-react";
 import {
   currentPolicy,
-  dayOffset,
   isReviewer,
   launchBlockers,
   localDay,
-  people,
+  membersOf,
+  memberRoles,
+  isLead,
   products,
   channels,
   role,
@@ -123,7 +125,10 @@ export default function App() {
           ? "Campaign submitted for independent review."
           : "Change saved with an audit record.",
       );
-      if (action.type === "submit") setSelected(next.campaigns[0].id);
+      if (action.type === "submit") {
+        setPage("Review queue");
+        setSelected(next.campaigns[0].id);
+      }
       return true;
     } catch (e) {
       setError(
@@ -235,7 +240,8 @@ export default function App() {
               { Icon: Inbox, label: "Review queue" },
               { Icon: BookOpen, label: "Policy library" },
               { Icon: History, label: "Audit trail" },
-              { Icon: FlaskConical, label: "Demo scenarios" },
+              { Icon: PlayCircle, label: "Product walkthrough" },
+              { Icon: Users, label: "Workspace team" },
             ].map(({ Icon, label }) => (
               <button
                 key={label}
@@ -273,18 +279,20 @@ export default function App() {
               </span>
               <span>
                 <select
-                  aria-label="Demo user"
+                  aria-label="Workspace identity"
                   value={person}
                   onChange={(e) => {
                     setPerson(e.target.value);
                     setError("");
                   }}
                 >
-                  {people.map((p) => (
-                    <option key={p}>{p}</option>
-                  ))}
+                  {membersOf(workspace)
+                    .map((m) => m.name)
+                    .map((p) => (
+                      <option key={p}>{p}</option>
+                    ))}
                 </select>
-                <small>{role(person)} · Demo identity</small>
+                <small>{role(person, workspace)} · Local identity</small>
               </span>
             </label>
           </div>
@@ -359,7 +367,7 @@ export default function App() {
                 workspace={workspace}
                 person={person}
                 today={today}
-                back={() => setSelected(null)}
+                back={() => navigate("Review queue")}
                 run={run}
               />
             ) : (
@@ -374,9 +382,11 @@ export default function App() {
                           ? "See what needs your attention."
                           : page === "Policy library"
                             ? "Consistent reviews start here."
-                            : page === "Demo scenarios"
-                              ? "Put the workflow to the test."
-                              : "Every decision, accounted for."}
+                            : page === "Product walkthrough"
+                              ? "From first review to confident launch."
+                              : page === "Workspace team"
+                                ? "Make the workspace yours."
+                                : "Every decision, accounted for."}
                     </h1>
                     <p>
                       {page === "Review queue"
@@ -385,9 +395,11 @@ export default function App() {
                           ? "Operational signals from this workspace, with clear next actions."
                           : page === "Policy library"
                             ? "Versioned internal guidance. Policy changes trigger re-review before launch."
-                            : page === "Demo scenarios"
-                              ? "Realistic edge cases, the reasoning behind them, and a guided way to try each one."
-                              : "A record of decisions, evidence, handoffs, and creative revisions."}
+                            : page === "Product walkthrough"
+                              ? "A captioned product walkthrough. Follow one campaign through the decisions that matter."
+                              : page === "Workspace team"
+                                ? "Add your own names and choose who submits, reviews, and leads compliance."
+                                : "A record of decisions, evidence, handoffs, and creative revisions."}
                     </p>
                   </div>
                   <button
@@ -399,6 +411,21 @@ export default function App() {
                 </div>
                 {(page === "Review queue" || page === "Overview") && (
                   <>
+                    <div className="own-work-banner">
+                      <div>
+                        <b>Try it with your own campaign.</b>
+                        <p>
+                          Paste your copy or import a text file. Add your own
+                          team names and select an independent reviewer.
+                        </p>
+                      </div>
+                      <button
+                        className="secondary"
+                        onClick={() => navigate("Workspace team")}
+                      >
+                        Set up your team <ArrowRight size={14} />
+                      </button>
+                    </div>
                     <div className="stats">
                       {[
                         {
@@ -729,7 +756,7 @@ export default function App() {
                                 </div>
                               ))}
                             </details>
-                            {person === "Sarah Chen" && (
+                            {isLead(person, workspace) && (
                               <button
                                 className="secondary space-top"
                                 onClick={() => setModal(`policy:${p}`)}
@@ -781,22 +808,105 @@ export default function App() {
                       ))}
                   </section>
                 )}
-                {page === "Demo scenarios" && (
-                  <Scenarios
-                    campaigns={campaigns}
-                    today={today}
-                    open={(id, identity) => {
-                      const item = campaigns.find((c) => c.id === id);
-                      if (item) {
-                        setPerson(identity);
-                        select(item);
-                      } else
-                        setToast(
-                          "This sample is not in your workspace. Export your work, then reset the demo to load all scenarios.",
-                        );
-                    }}
-                    policies={() => navigate("Policy library")}
-                  />
+                {page === "Product walkthrough" && (
+                  <section className="panel walkthrough-player">
+                    <video
+                      controls
+                      preload="metadata"
+                      poster="./media/clearpath-walkthrough-poster.jpg"
+                      playsInline
+                      aria-label="ClearPath Review captioned product walkthrough"
+                    >
+                      <source
+                        src="./media/clearpath-walkthrough.mp4"
+                        type="video/mp4"
+                      />
+                      <track
+                        kind="captions"
+                        src="./media/clearpath-walkthrough.vtt"
+                        srcLang="en"
+                        label="English"
+                      />
+                      Your browser does not support video playback.{" "}
+                      <a href="./media/clearpath-walkthrough.mp4">
+                        Download the walkthrough
+                      </a>
+                      .
+                    </video>
+                    <div className="walkthrough-details">
+                      <div>
+                        <h2>One campaign. A clear chain of decisions.</h2>
+                        <p>
+                          Actual product interactions, edited with on-screen
+                          explanations. No audio required.
+                        </p>
+                      </div>
+                      <a
+                        className="secondary"
+                        href="./media/clearpath-walkthrough.mp4"
+                        download
+                      >
+                        <Download size={15} /> Download video
+                      </a>
+                    </div>
+                  </section>
+                )}
+                {page === "Workspace team" && (
+                  <section className="panel team-panel">
+                    <div className="notice neutral-tone">
+                      <Users size={20} />
+                      <p>
+                        Use your own names and campaigns. These are local
+                        workflow identities, not accounts or invitations; data
+                        stays in this browser. Sample people remain available.
+                      </p>
+                    </div>
+                    <div className="section-heading">
+                      <h2>
+                        {membersOf(workspace).length} workspace identities
+                      </h2>
+                      <button
+                        className="primary"
+                        onClick={() => setModal("member")}
+                      >
+                        <Plus size={16} /> Add team member
+                      </button>
+                    </div>
+                    <div className="team-grid">
+                      {membersOf(workspace).map((m) => (
+                        <article className="team-card" key={m.name}>
+                          <span className="avatar">
+                            {m.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .slice(0, 2)
+                              .join("")}
+                          </span>
+                          <div>
+                            <h3>{m.name}</h3>
+                            <p>{m.role}</p>
+                          </div>
+                          <button
+                            className="secondary"
+                            disabled={person === m.name}
+                            onClick={() => {
+                              setPerson(m.name);
+                              setToast(`Now working as ${m.name}.`);
+                            }}
+                          >
+                            {person === m.name
+                              ? "Current identity"
+                              : "Use identity"}
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                    <p className="small muted">
+                      Owners submit and revise. Reviewers decide on assigned
+                      work. Leads also publish policy and revoke approvals.
+                      Authors cannot approve their own creative.
+                    </p>
+                  </section>
                 )}
                 <footer>
                   <ShieldCheck size={14} /> Thoughtful reviews. Clear evidence.
@@ -808,7 +918,66 @@ export default function App() {
           </main>
         </div>
         {modal === "submission" && (
-          <Submission today={today} onClose={() => setModal("")} run={run} />
+          <Submission
+            today={today}
+            onClose={() => setModal("")}
+            run={run}
+            workspace={workspace}
+            person={person}
+          />
+        )}
+        {modal === "member" && (
+          <Dialog title="Add a local team member" onClose={() => setModal("")}>
+            <p>
+              Use a real or fictional name. No invitation is sent; this identity
+              exists only in your browser workspace.
+            </p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const d = new FormData(e.currentTarget);
+                if (
+                  await run({
+                    type: "member",
+                    name: String(d.get("name")),
+                    role: String(d.get("role")) as (typeof memberRoles)[number],
+                  })
+                )
+                  setModal("");
+              }}
+            >
+              <label>
+                Name
+                <input
+                  name="name"
+                  required
+                  minLength={2}
+                  maxLength={60}
+                  placeholder="e.g. Priya Shah"
+                />
+              </label>
+              <label>
+                Workspace role
+                <select name="role">
+                  {memberRoles.map((r) => (
+                    <option key={r}>{r}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setModal("")}
+                >
+                  Cancel
+                </button>
+                <button className="primary" disabled={saving}>
+                  Add team member
+                </button>
+              </div>
+            </form>
+          </Dialog>
         )}
         {modal === "reset" && (
           <Dialog title="Reset demo workspace?" onClose={() => setModal("")}>
@@ -849,7 +1018,8 @@ export default function App() {
                     setWarning("");
                     setError("");
                     setModal("");
-                    setToast("Demo restored. All eight scenarios are ready.");
+                    setPerson("Sarah Chen");
+                    setToast("Demo workspace restored.");
                   } catch (e) {
                     setError(e instanceof Error ? e.message : "Reset failed.");
                   }
@@ -985,31 +1155,34 @@ function Overview({
         <p className="small muted">
           Use a reasoned handoff when ownership needs to change.
         </p>
-        {people.filter(isReviewer).map((p) => {
-          const count = active.filter((c) => c.reviewer === p).length;
-          return (
-            <div className="workload" key={p}>
-              <div>
-                <b>{p}</b>
-                <span>
-                  {count} active ·{" "}
-                  {
-                    active.filter((c) => c.reviewer === p && c.due < today)
-                      .length
-                  }{" "}
-                  past due
-                </span>
+        {membersOf(workspace)
+          .map((m) => m.name)
+          .filter((p) => isReviewer(p, workspace))
+          .map((p) => {
+            const count = active.filter((c) => c.reviewer === p).length;
+            return (
+              <div className="workload" key={p}>
+                <div>
+                  <b>{p}</b>
+                  <span>
+                    {count} active ·{" "}
+                    {
+                      active.filter((c) => c.reviewer === p && c.due < today)
+                        .length
+                    }{" "}
+                    past due
+                  </span>
+                </div>
+                <div className="meter">
+                  <span
+                    style={{
+                      width: `${active.length ? (count / active.length) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
               </div>
-              <div className="meter">
-                <span
-                  style={{
-                    width: `${active.length ? (count / active.length) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
         <div className="metric-pair">
           <div>
             <strong>{median === null ? "—" : `${median.toFixed(1)}h`}</strong>
@@ -1062,144 +1235,5 @@ function Overview({
         )}
       </section>
     </div>
-  );
-}
-function Scenarios({
-  campaigns,
-  today,
-  open,
-  policies,
-}: {
-  campaigns: Campaign[];
-  today: string;
-  open: (id: string, person: string) => void;
-  policies: () => void;
-}) {
-  const cards = [
-    [
-      "01",
-      "Risky affiliate creative",
-      "CP-1048",
-      "Sarah Chen",
-      "Open findings cover approval promises and credit inquiries. Request changes with a reason; switch to Alex Morgan to revise. Destination copy is reviewed alongside the ad.",
-      "The ad can look safe while its landing page makes a misleading promise.",
-    ],
-    [
-      "02",
-      "Approval needs evidence",
-      "CP-1045",
-      "Sarah Chen",
-      "The sample evidence is already attached. Complete the checklist, choose an expiry before " +
-        displayDate(dayOffset(60)) +
-        ", and add a decision rationale. Then inspect the exact snapshot in Versions.",
-      "A checked box is not enough: reviewers need attributable, time-bound substantiation.",
-    ],
-    [
-      "03",
-      "The author cannot approve",
-      "CP-1046",
-      "Alex Morgan",
-      "Submit a revised version as Alex. Approval stays unavailable until you switch to the assigned compliance reviewer. New copy clears prior evidence and checks.",
-      "Separation of duties follows creative authorship, not just the original submitter.",
-    ],
-    [
-      "04",
-      "Escalated partner request",
-      "CP-1044",
-      "Jamie Lee",
-      "Try reviewing the escalated creative. Switch to Sarah Chen to clear the escalation with documented guidance. The reviewer must still complete every approval prerequisite.",
-      "Urgency or partner pressure must not bypass compliance gates.",
-    ],
-    [
-      "05",
-      "Policy changed after approval",
-      "CP-1042",
-      "Sarah Chen",
-      "Inspect the policy hold and historical decision. Reopen the review, acknowledge current policy, and re-verify findings, evidence, and checks.",
-      "Historical approval stays visible without falsely implying current launch clearance.",
-    ],
-    [
-      "06",
-      "The offer has expired",
-      "CP-1041",
-      "Sarah Chen",
-      "Inspect the expired approval and evidence. Reopen, replace the evidence, and review again; simply extending a date cannot renew approval.",
-      "Expiration is derived from the date, so returning to an old browser session still shows the hold.",
-    ],
-    [
-      "07",
-      "Stop an approved campaign",
-      "CP-1043",
-      "Sarah Chen",
-      "Revoke with a specific reason. The campaign immediately loses launch clearance while the original decision snapshot stays exportable.",
-      "Stopping distribution and deleting history are different operations.",
-    ],
-  ];
-  return (
-    <>
-      <div className="notice neutral-tone">
-        <FlaskConical size={21} />
-        <p>
-          Scenarios use the current workspace and preserve your progress. Reset
-          the demo to replay them from the start. Dates are relative to your
-          browser’s local calendar; today is {displayDate(today)}.
-        </p>
-      </div>
-      <div className="scenario-grid">
-        {cards.map(([n, title, id, identity, steps, why]) => (
-          <article className="panel scenario" key={n}>
-            <div className="scenario-number">{n}</div>
-            <h2>{title}</h2>
-            <p>{steps}</p>
-            <div className="why">
-              <b>Product thinking</b>
-              <p>{why}</p>
-            </div>
-            <button className="text-button" onClick={() => open(id, identity)}>
-              {campaigns.some((c) => c.id === id)
-                ? "Try this scenario"
-                : "Sample not loaded — reset to try"}
-              <ArrowRight size={15} />
-            </button>
-          </article>
-        ))}
-        <article className="panel scenario">
-          <div className="scenario-number">08</div>
-          <h2>Two reviewers, one record</h2>
-          <p>
-            Open this site in two tabs. Save a checklist change in one; the
-            other shows a stale-workspace notice and blocks writes until
-            refreshed. Typed form text remains available.
-          </p>
-          <div className="why">
-            <b>Product thinking</b>
-            <p>
-              Prevent lost updates with Web Locks and a workspace revision
-              check. A failed save never pretends to be successful.
-            </p>
-          </div>
-        </article>
-        <article className="panel scenario">
-          <div className="scenario-number">09</div>
-          <h2>A change affects many campaigns</h2>
-          <p>
-            As Sarah Chen, publish a policy revision. Review its impact count
-            before confirming. Existing approvals for that product become holds
-            immediately.
-          </p>
-          <div className="why">
-            <b>Product thinking</b>
-            <p>
-              Make policy change impact visible without silently approving or
-              rewriting old decisions.
-            </p>
-          </div>
-          <button className="text-button" onClick={policies}>
-            Open policy library
-            <ArrowRight size={15} />
-          </button>
-        </article>
-      </div>
-    </>
   );
 }
