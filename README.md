@@ -15,7 +15,7 @@ A browser-local compliance review product for the fictional ClearPath Financial 
 ### What is implemented
 
 - **Bring your own work:** add custom local team members (owner, reviewer, lead), select an independent reviewer at intake, and paste or import `.txt`/`.md` campaign copy. Samples remain available. Names, copy, partners, audience, and scope are editable inputs, not fixed demo paths. Imports stay local, validate encoding/type/size, and confirm before replacing existing copy.
-- **Captioned video:** a story-led walkthrough of real app interactions with visual explanations of edge cases, workflow tradeoffs, and production boundaries; available from the sidebar or the standalone watch link above.
+- **Captioned video:** a live browser recording with a visible cursor, clicks, scrolling, and timed side captions explaining of edge cases, workflow tradeoffs, and production boundaries; available from the sidebar or the standalone watch link above.
 - **Structured intake:** product, channel, partner, audience/geographic scope, deadline, exact creative, and affiliate destination capture. Normalized duplicate checks prevent repeated briefs and identical creative in the same distribution scope.
 - **Prioritized review queue:** escalations and distribution holds ahead of overdue reviews, then due dates; search, product/channel filters, assigned work, launch-ready and closed views.
 - **Evidence-based decisions:** version-bound source references and terms excerpts, evidence expiration, manual findings, reasoned resolutions, required human checks, and approval rationale. Approval cannot outlive its evidence.
@@ -79,6 +79,6 @@ No real customer data or lending decisions belong in this fictional demo.
 
 ## Walkthrough media
 
-The MP4 is served directly by GitHub Pages from `public/media/`. On-screen captions carry the narration; a WebVTT track and chapter navigation are also provided. The video uses actual captured product states, editorial cuts, focus crops, and animated explanatory text. It is not an unedited screen recording or a simulation of unimplemented features.
+The MP4 is served directly by GitHub Pages from `public/media/`. On-screen captions carry the narration; a WebVTT track and chapter navigation are also provided. The 3:55 video is a real Chrome tab recording, including the visible cursor, clicks, menus, scrolling, edits, and creation of a custom campaign. Timed side captions explain the workflow and edge cases. Idle pauses are trimmed and playback is slowed to 80% speed for readability. A cursor overlay follows actual pointer events and highlights clicks; the footage comes from a live tab capture.
 
-Source captures are in `media-source/frames/`; `scripts/render_walkthrough.py` assembles them with Pillow and imageio-ffmpeg. These are authoring dependencies, not app/runtime dependencies. The renderer supports macOS Arial or Linux DejaVu fonts.
+The original video stream and action timing log are in `media-source/`; `scripts/render_walkthrough.py` composites the footage and timed captions using Pillow and imageio-ffmpeg. `scripts/recording-studio.html` is a local authoring utility using Chrome’s tab-sharing picker and MediaRecorder; it is not shipped with the app. These are authoring dependencies, not app/runtime dependencies. The renderer supports macOS Arial or Linux DejaVu fonts.

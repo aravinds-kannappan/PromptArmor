@@ -813,22 +813,22 @@ export default function App() {
                     <video
                       controls
                       preload="metadata"
-                      poster="./media/clearpath-walkthrough-poster.jpg"
+                      poster="./media/clearpath-walkthrough-poster.jpg?v=live-cursor-2"
                       playsInline
                       aria-label="ClearPath Review captioned product walkthrough"
                     >
                       <source
-                        src="./media/clearpath-walkthrough.mp4"
+                        src="./media/clearpath-walkthrough.mp4?v=live-cursor-2"
                         type="video/mp4"
                       />
                       <track
                         kind="captions"
-                        src="./media/clearpath-walkthrough.vtt"
+                        src="./media/clearpath-walkthrough.vtt?v=live-cursor-2"
                         srcLang="en"
                         label="English"
                       />
                       Your browser does not support video playback.{" "}
-                      <a href="./media/clearpath-walkthrough.mp4">
+                      <a href="./media/clearpath-walkthrough.mp4?v=live-cursor-2">
                         Download the walkthrough
                       </a>
                       .
@@ -837,13 +837,14 @@ export default function App() {
                       <div>
                         <h2>One campaign. A clear chain of decisions.</h2>
                         <p>
-                          Actual product interactions, edited with on-screen
-                          explanations. No audio required.
+                          Live browser recording with a visible cursor and timed
+                          explanations. Includes creating a custom campaign. No
+                          audio required.
                         </p>
                       </div>
                       <a
                         className="secondary"
-                        href="./media/clearpath-walkthrough.mp4"
+                        href="./media/clearpath-walkthrough.mp4?v=live-cursor-2"
                         download
                       >
                         <Download size={15} /> Download video
