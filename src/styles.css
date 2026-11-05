@@ -2074,3 +2074,17 @@ dialog label {
   width: fit-content;
   margin-right: 16px;
 }
+
+/* Explain the operational benefit without presenting projected gains as metrics. */
+.throughput-panel { grid-column: 1 / -1; padding: 25px; }
+.throughput-panel h2 { margin-top: 10px; }
+.throughput-intro { color: #64735d; font-size: 13px; line-height: 1.8; margin-top: 10px; max-width: 850px; }
+.throughput-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+.throughput-steps span { font-size: 10px; font-weight: 700; color: #55734b; letter-spacing: .7px; }
+.throughput-steps h3 { font-size: 14px; margin: 9px 0; }
+.throughput-steps p, .throughput-validation p { font-size: 12px; line-height: 1.8; color: #64735d; }
+.throughput-validation { border-top: 1px solid #e0e6d8; padding-top: 18px; }
+.throughput-validation b { font-size: 13px; }
+.throughput-validation p { margin: 6px 0; }
+.throughput-validation small { display: block; font-size: 11px; line-height: 1.8; color: #64735d; }
+@media (max-width: 700px) { .throughput-steps { grid-template-columns: 1fr; gap: 18px; } .throughput-panel { padding: 18px; } }

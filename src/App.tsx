@@ -377,7 +377,7 @@ export default function App() {
                     <div className="eyebrow">CLEARPATH REVIEW</div>
                     <h1>
                       {page === "Review queue"
-                        ? "Good work. Clear to go."
+                        ? "Less back-and-forth. More ready to launch."
                         : page === "Overview"
                           ? "See what needs your attention."
                           : page === "Policy library"
@@ -390,9 +390,9 @@ export default function App() {
                     </h1>
                     <p>
                       {page === "Review queue"
-                        ? "Prioritize the right work. Keep evidence and decisions together."
+                        ? "Move campaigns through compliance with complete briefs, clear ownership, and one review record."
                         : page === "Overview"
-                          ? "Operational signals from this workspace, with clear next actions."
+                          ? "Find review bottlenecks, rebalance work, and see what is holding up campaign launches."
                           : page === "Policy library"
                             ? "Versioned internal guidance. Policy changes trigger re-review before launch."
                             : page === "Product walkthrough"
@@ -413,10 +413,11 @@ export default function App() {
                   <>
                     <div className="own-work-banner">
                       <div>
-                        <b>Try it with your own campaign.</b>
+                        <b>Make room for growth with the same review team.</b>
                         <p>
-                          Paste your copy or import a text file. Add your own
-                          team names and select an independent reviewer.
+                          Spend less time chasing emails and rebuilding context,
+                          so reviewers can focus on decisions. Try the workflow
+                          with your own team and campaign copy.
                         </p>
                       </div>
                       <button
@@ -1148,6 +1149,28 @@ function Overview({
     : null;
   return (
     <div className="overview-grid">
+      <section className="panel throughput-panel" aria-labelledby="throughput-heading">
+        <div className="eyebrow">FROM REVIEW CAPACITY TO GROWTH</div>
+        <h2 id="throughput-heading">Less coordination work. More capacity for campaigns.</h2>
+        <p className="throughput-intro">
+          The goal is more completed reviews with the same team, helping marketing
+          launch sooner while keeping evidence and independent human review required.
+        </p>
+        <div className="throughput-steps">
+          <div><span>01 / COMPLETE INTAKE</span><h3>Fewer clarification loops</h3><p>Capture copy, audience, channel, and ownership before review starts.</p></div>
+          <div><span>02 / FOCUSED REVIEW</span><h3>Less time reconstructing context</h3><p>Keep advisory flags, evidence, feedback, and revisions in one campaign record.</p></div>
+          <div><span>03 / CLEAR NEXT ACTION</span><h3>Less waiting between people</h3><p>See overdue work and reviewer load; hand off reviews and identify launch blockers.</p></div>
+        </div>
+        <div className="throughput-validation">
+          <b>How we would validate the benefit</b>
+          <p>Compare completed reviews per reviewer per week, time to decision,
+          and revision cycles against the Excel/email baseline. Track decision
+          quality and post-approval corrections alongside speed.</p>
+          <small>Expected benefits, not measured gains. This browser-local prototype
+          demonstrates the workflow; a real team needs shared storage, authenticated
+          roles, and notifications.</small>
+        </div>
+      </section>
       <section className="panel overview-panel">
         <div className="section-heading">
           <h2>Reviewer capacity</h2>

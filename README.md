@@ -6,16 +6,32 @@ A browser-local compliance review product for the fictional ClearPath Financial 
 
 ## Short product report
 
-**Problem.** Excel and email fragment intake, ownership, feedback, and approval evidence. Reviewers spend time reconstructing context; marketing teams cannot reliably tell whether a creative is ready to launch.
+**Problem.** Excel and email fragment intake, ownership, feedback, and approval evidence. Reviewers spend time reconstructing context and chasing missing information. As campaign volume grows, those coordination costs consume review capacity, delay launches, and make compliance a bottleneck to growth. Marketing teams also cannot reliably tell whether a creative is ready to launch.
 
 **Audience.** Compliance reviewers own decisions, marketing owners supply and revise creative, and the compliance lead handles escalations, policy changes, and revocations. Demo identities let an evaluator experience each role; they are not authentication.
 
 **Core decision.** Optimize the flow of well-supported human decisions. Automated checks are advisory, not legal clearance. Separate “was approved” from “is launch-ready”: a campaign can have a historical approval and still be on hold because policy, evidence, or eligibility changed.
 
+### How this addresses growth and throughput
+
+**Product hypothesis:** reduce avoidable coordination work so the same compliance team can complete more reviews, allowing marketing to launch more eligible campaigns sooner. This enables growth; it does not establish increased acquisition or revenue. The assumption is that missing information, scattered feedback, and unclear ownership are material sources of delay—not simply a shortage of specialist reviewers.
+
+| Excel/email bottleneck | Product intervention | Expected operational benefit |
+| --- | --- | --- |
+| Incomplete briefs trigger follow-up emails | Structured intake captures copy, distribution scope, owner, and reviewer | Fewer clarification cycles before a useful review |
+| Feedback, evidence, and versions live in separate threads | One versioned campaign record with findings, supporting terms, and decisions | Less time reconstructing context and repeating checks |
+| Common copy issues consume repetitive screening time | Advisory pre-checks flag potential issues; reviewers can add missed findings | More reviewer attention available for judgment |
+| Work waits because the next owner or priority is unclear | Prioritized queue, reviewer workload, explicit revision ownership, and reasoned handoffs | Shorter waits between review steps |
+| Marketing cannot distinguish past approval from current clearance | Launch readiness reflects current version, policy, evidence, and revocation status | Clearer launch decisions and less avoidable post-approval rework |
+
+**Validate in a pilot:** establish an Excel/email baseline, then compare comparable product/channel/risk mixes and reviewer staffing over equal observation windows. Primary metric: completed review decisions per active reviewer per week, with approvals and requests for changes reported separately so revision churn cannot masquerade as progress. Also measure submission-to-first-decision time (median and p90), submission-to-launch-ready time, first-pass completeness, revision cycles, and backlog age. Track sampled decision quality and post-approval corrections as guardrails. Faster decisions are not a win if error or rework rates increase.
+
+**What is demonstrated vs. proven:** the app implements the proposed workflow and displays descriptive workspace counts and elapsed approval time. It does not yet measure a before/after throughput uplift, reviewer effort, or revenue impact. Seeded records are examples, not pilot results. The browser-only prototype cannot coordinate a real team across devices; shared persistent storage, authenticated role enforcement, and notifications are prerequisites for an operational pilot.
+
 ### What is implemented
 
 - **Bring your own work:** add custom local team members (owner, reviewer, lead), select an independent reviewer at intake, and paste or import `.txt`/`.md` campaign copy. Samples remain available. Names, copy, partners, audience, and scope are editable inputs, not fixed demo paths. Imports stay local, validate encoding/type/size, and confirm before replacing existing copy.
-- **Captioned video:** a live browser recording with a visible cursor, clicks, scrolling, and timed side captions explaining of edge cases, workflow tradeoffs, and production boundaries; available from the sidebar or the standalone watch link above.
+- **Captioned video:** a live browser recording with a visible cursor, clicks, scrolling, and timed side captions explaining edge cases, workflow tradeoffs, and production boundaries; available from the sidebar or the standalone watch link above.
 - **Structured intake:** product, channel, partner, audience/geographic scope, deadline, exact creative, and affiliate destination capture. Normalized duplicate checks prevent repeated briefs and identical creative in the same distribution scope.
 - **Prioritized review queue:** escalations and distribution holds ahead of overdue reviews, then due dates; search, product/channel filters, assigned work, launch-ready and closed views.
 - **Evidence-based decisions:** version-bound source references and terms excerpts, evidence expiration, manual findings, reasoned resolutions, required human checks, and approval rationale. Approval cannot outlive its evidence.
