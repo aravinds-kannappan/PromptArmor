@@ -2088,3 +2088,11 @@ dialog label {
 .throughput-validation p { margin: 6px 0; }
 .throughput-validation small { display: block; font-size: 11px; line-height: 1.8; color: #64735d; }
 @media (max-width: 700px) { .throughput-steps { grid-template-columns: 1fr; gap: 18px; } .throughput-panel { padding: 18px; } }
+
+.jurisdiction-fields { border: 1px solid #d8e1cf; border-radius: 8px; padding: 16px; margin: 18px 0; }
+.jurisdiction-fields legend { font-size: 13px; font-weight: 700; }
+.jurisdiction-fields p { font-size: 11px; line-height: 1.7; color: #64735d; margin-bottom: 12px; }
+.jurisdiction-fields label { display: flex; flex-direction: row; text-align: left; align-items: center; gap: 10px; margin: 10px 0; }
+.jurisdiction-fields input { width: auto; flex: 0 0 auto; }
+.rush-panel { border-top: 1px solid #d8e1cf; margin-top: 20px; padding-top: 18px; }
+.rush-panel p { font-size: 12px; line-height: 1.7; margin: 8px 0; overflow-wrap: anywhere; }

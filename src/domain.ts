@@ -18,7 +18,8 @@ export type Status =
   | "Changes requested"
   | "Approved"
   | "Revoked"
-  | "Withdrawn";
+  | "Withdrawn"
+  | "Rejected";
 export type Finding = {
   id: string;
   title: string;
@@ -42,6 +43,7 @@ export type Snapshot = {
   title: string;
   copy: string;
   scope: string;
+  jurisdictions?: string;
   product: string;
   channel: string;
   partner: string;
@@ -79,6 +81,7 @@ export type Campaign = {
     review?: Snapshot;
   }[];
   scope: string;
+  jurisdictions?: string;
   expires?: string;
   policyVersion: number;
   evidence: Evidence[];
@@ -88,6 +91,8 @@ export type Campaign = {
   destinationCopy: string;
   escalated: string;
   submittedAt: string;
+  rush?: { status: "Pending" | "Approved" | "Denied"; requestedBy: string; reason: string; version: number; decidedBy?: string; decision?: string };
+  rejection?: Snapshot;
 };
 export type Policy = {
   product: string;
@@ -158,9 +163,12 @@ export function safeUrl(s: string) {
     return false;
   }
 }
-export function scan(copy: string): Finding[] {
+export function scan(copy: string, product?: string): Finding[] {
   const text = copy.normalize("NFKC");
   const rules: [string, boolean, string, string][] = [
+    ["promotion", product === "Credit cards" && /(?:introductory|intro|promotional|0%)/i.test(text) && !/(?:months?|until|through|expires)/i.test(text), "Promotional period not captured", "Capture the promotional end date or duration, qualifying transactions, and the terms that apply afterward. A reviewer must verify these against the offer terms."],
+    ["mortgage", product === "Mortgage" && /(?:prequalified|prequalification|preapproved)/i.test(text) && !/(?:not a commitment|not guaranteed|subject to|does not guarantee)/i.test(text), "Prequalification limitations not captured", "Verify that the copy distinguishes prequalification from a lending commitment and explains the remaining conditions."],
+
     [
       "guarantee",
       /(?:guaranteed\s+(?:approval|financing)|everyone is approved|100%\s*approval)/i.test(
@@ -200,6 +208,30 @@ export function scan(copy: string): Finding[] {
       source: "Pre-check",
     }));
 }
+// Fictional policy fixtures demonstrate jurisdiction routing, not actual state law.
+export const jurisdictionOptions = { CA: "California", NY: "New York", TX: "Texas", OTHER: "Other / nationwide / not yet supported" };
+export const jurisdictionCodes = (value?: string) => (value || "").split(",").filter(Boolean);
+export function jurisdictionError(c: Pick<Campaign, "jurisdictions">): string | null {
+  const codes = jurisdictionCodes(c.jurisdictions);
+  if (!codes.length) return "Select distribution states in a revised brief before approval.";
+  if (codes.some(x => !["CA", "NY", "TX"].includes(x))) return "Unsupported jurisdiction: narrow the distribution scope or obtain a supported policy before approval.";
+  return null;
+}
+export function reviewChecks(c: Pick<Campaign, "product" | "jurisdictions">): string[] {
+  const product = c.product === "Personal loans" ? "Loan APR, fees, repayment example, and eligibility verified" : c.product === "Credit cards" ? "Card purchase APR, annual fee, and promotional end terms verified" : "Prequalification limits, lender identity, and non-guarantee disclosure verified";
+  const fixtures: Record<string, string> = { CA: "CA fixture: state availability and lender identity disclosure verified", NY: "NY fixture: state-specific offer limitations and fee disclosure verified", TX: "TX fixture: state contact and complaint disclosure verified" };
+  return [...checks, product, ...jurisdictionCodes(c.jurisdictions).filter(x => fixtures[x]).map(x => fixtures[x])];
+}
+export function hasApprovedRush(c: Campaign) {
+  return c.status === "In review" && c.rush?.status === "Approved" && c.rush.version === c.version;
+}
+export function queueRank(c: Campaign, policy: number, today: string) {
+  if (c.status === "Revoked" || (c.status === "Approved" && launchBlockers(c, policy, today).length)) return 0;
+  if (hasApprovedRush(c)) return 1;
+  if (c.status === "In review") return 2;
+  if (c.status === "Changes requested") return 3;
+  return 4;
+}
 export function currentPolicy(w: Workspace, product: string) {
   return Math.max(
     1,
@@ -216,7 +248,7 @@ export function launchBlockers(
     errors.push(
       c.status === "Revoked"
         ? "Approval revoked — stop distribution"
-        : c.status === "Withdrawn"
+        : c.status === "Rejected" ? "Campaign rejected — distribution prohibited" : c.status === "Withdrawn"
           ? "Campaign withdrawn"
           : "Human approval required",
     );
@@ -231,6 +263,8 @@ export function launchBlockers(
     c.evidence.some((e) => e.validThrough < today || e.version !== c.version)
   )
     errors.push("Evidence missing, expired, or from another version");
+  if (jurisdictionError(c)) errors.push(jurisdictionError(c)!);
+  if (c.status === "Approved" && reviewChecks(c).some(x => !c.checks.includes(x))) errors.push("Product/state review checks require re-review");
   if (c.escalated) errors.push("Escalation requires compliance lead clearance");
   if (c.status === "Approved") {
     const decision = c.approvals.at(-1);
@@ -266,7 +300,8 @@ export function approvalError(
     return "Acknowledge the current policy before approval.";
   if (c.findings.some((f) => !f.resolved || !f.note.trim()))
     return "Resolve all open findings with rationale before approval.";
-  if (checks.some((x) => !c.checks.includes(x)))
+  if (jurisdictionError(c)) return jurisdictionError(c);
+  if (reviewChecks(c).some((x) => !c.checks.includes(x)))
     return "Complete all required review checks.";
   if (!c.evidence.length)
     return "Add a product-terms evidence record before approval.";
@@ -301,6 +336,7 @@ export function snapshot(
     title: c.title,
     copy: c.copy,
     scope: c.scope,
+    jurisdictions: c.jurisdictions,
     product: c.product,
     channel: c.channel,
     partner: c.partner,
@@ -324,6 +360,7 @@ export type Intake = {
   channel: string;
   partner: string;
   scope: string;
+  jurisdictions?: string;
   due: string;
   destination: string;
   destinationCopy: string;
@@ -351,6 +388,10 @@ export type Action =
   | {
       type:
         | "request"
+        | "reject"
+        | "rush"
+        | "approveRush"
+        | "denyRush"
         | "reopen"
         | "revoke"
         | "withdraw"
@@ -364,6 +405,7 @@ export type Action =
       id: string;
       copy: string;
       scope: string;
+      jurisdictions?: string;
       destination: string;
       destinationCopy: string;
     }
@@ -440,6 +482,9 @@ export function applyAction(
     const d = Object.fromEntries(
       Object.entries(action.data).map(([k, v]) => [k, v.trim()]),
     ) as Intake;
+    requireThat(typeof d.jurisdictions === "string" && jurisdictionCodes(d.jurisdictions).length > 0 && jurisdictionCodes(d.jurisdictions).every(x => x in jurisdictionOptions), "Select at least one distribution state.");
+    d.jurisdictions = [...new Set(jurisdictionCodes(d.jurisdictions))].sort().join(",");
+    requireThat(!d.destination || safeUrl(d.destination), "Destination must be a valid HTTPS URL without credentials.");
     requireThat(
       d.title.length >= 3 &&
         d.title.length <= 100 &&
@@ -471,15 +516,17 @@ export function applyAction(
           normalize(d.partner) !== "in-house",
         "Affiliate campaigns require a named partner, HTTPS destination, and landing-page copy (20+ characters).",
       );
+    requireThat(!w.campaigns.some(c => c.status === "Rejected" && normalize(c.copy) === normalize(d.copy) && c.product === d.product && c.channel === d.channel && normalize(c.partner) === normalize(d.partner) && c.jurisdictions === d.jurisdictions && normalize(c.scope) === normalize(d.scope)), "This exact offer and distribution scope were rejected. Submit a materially different proposal; renaming it does not reopen the decision.");
     requireThat(
       !w.campaigns.some(
         (c) =>
-          c.status !== "Withdrawn" &&
+          !["Withdrawn", "Rejected"].includes(c.status) &&
           (normalize(c.title) === normalize(d.title) ||
             (normalize(c.copy) === normalize(d.copy) &&
               c.product === d.product &&
               c.channel === d.channel &&
-              normalize(c.partner) === normalize(d.partner))),
+              normalize(c.partner) === normalize(d.partner) &&
+              c.jurisdictions === d.jurisdictions && normalize(c.scope) === normalize(d.scope))),
       ),
       "This title or exact creative already exists for this distribution scope. Open the existing campaign or use a distinct brief.",
     );
@@ -504,7 +551,7 @@ export function applyAction(
       status: "In review",
       version: 1,
       policyVersion: currentPolicy(w, d.product),
-      findings: scan(d.copy + "\n" + d.destinationCopy),
+      findings: scan(d.copy + "\n" + d.destinationCopy, d.product),
       checks: [],
       evidence: [],
       approvals: [],
@@ -566,7 +613,7 @@ export function applyAction(
         break;
       case "check":
         reviewer();
-        requireThat(checks.includes(action.check), "Unknown checklist item.");
+        requireThat(reviewChecks(c).includes(action.check), "Unknown checklist item.");
         c.checks = action.checked
           ? [...new Set([...c.checks, action.check])]
           : c.checks.filter((x) => x !== action.check);
@@ -674,10 +721,36 @@ export function applyAction(
         );
         break;
       }
+      case "rush":
+        active();
+        requireThat(actor === c.owner, "Only the campaign owner can request a rush.");
+        requireThat(!c.rush || c.rush.version !== c.version, "A rush decision already exists for this version; repeated requests do not change priority.");
+        reason(action.reason);
+        c.rush = { status: "Pending", requestedBy: actor, reason: action.reason, version: c.version };
+        event(c, `Requested rush (priority unchanged): ${action.reason}`);
+        break;
+      case "approveRush":
+      case "denyRush":
+        active();
+        requireThat(isLead(actor, w) && actor !== c.owner && !c.contributors.includes(actor), "Only an independent compliance lead can decide rush requests.");
+        requireThat(c.rush?.status === "Pending" && c.rush.version === c.version, "No pending rush request for this version.");
+        reason(action.reason);
+        c.rush = { ...c.rush!, status: action.type === "approveRush" ? "Approved" : "Denied", decidedBy: actor, decision: action.reason };
+        event(c, `${c.rush.status} rush: ${action.reason}. Review safeguards unchanged.`);
+        break;
+      case "reject":
+        reviewer();
+        reason(action.reason);
+        c.rejection = snapshot(c, actor, action.reason, at);
+        c.status = "Rejected";
+        c.rush = undefined;
+        event(c, `Rejected campaign (closed, no revision or launch): ${action.reason}`);
+        break;
       case "request":
         reviewer();
         reason(action.reason);
         c.status = "Changes requested";
+        c.rush = undefined;
         event(c, `Requested changes on v${c.version}: ${action.reason}`);
         break;
       case "revise":
@@ -699,7 +772,12 @@ export function applyAction(
               action.destinationCopy.trim().length >= 20,
             "Affiliate revisions require HTTPS destination and landing-page copy.",
           );
+        const states = action.jurisdictions ?? c.jurisdictions;
+        requireThat(typeof states === "string" && jurisdictionCodes(states).length > 0 && jurisdictionCodes(states).every(x => x in jurisdictionOptions), "Select distribution states for the revision.");
+        requireThat(!action.destination || safeUrl(action.destination), "Destination must be a valid HTTPS URL without credentials.");
+        const normalizedStates = [...new Set(jurisdictionCodes(states))].sort().join(",");
         requireThat(
+          normalizedStates !== c.jurisdictions ||
           action.copy.trim() !== c.copy ||
             action.scope.trim() !== c.scope ||
             action.destination !== c.destination ||
@@ -714,6 +792,8 @@ export function applyAction(
           review: snapshot(c, actor, "Prior review state before revision", at),
         });
         c.version++;
+        c.jurisdictions = normalizedStates;
+        c.rush = undefined;
         c.copy = action.copy.trim();
         c.scope = action.scope.trim();
         c.destination = action.destination;
@@ -722,7 +802,7 @@ export function applyAction(
         c.status = "In review";
         c.checks = [];
         c.evidence = [];
-        c.findings = scan(c.copy + "\n" + c.destinationCopy);
+        c.findings = scan(c.copy + "\n" + c.destinationCopy, c.product);
         c.expires = "";
         c.policyVersion = currentPolicy(w, c.product);
         event(
@@ -757,7 +837,7 @@ export function applyAction(
         break;
       case "withdraw":
         requireThat(
-          (actor === c.owner || isLead(actor, w)) && c.status !== "Withdrawn",
+          (actor === c.owner || isLead(actor, w)) && !["Withdrawn", "Rejected"].includes(c.status),
           "Only the owner or lead can withdraw a campaign.",
         );
         reason(action.reason);
@@ -778,6 +858,7 @@ export function applyAction(
         event(c, `Escalated to compliance lead: ${action.reason}`);
         break;
       case "clearEscalation":
+        active();
         requireThat(
           isLead(actor, w) && !!c.escalated,
           "Only the compliance lead can clear an escalation.",
@@ -908,9 +989,10 @@ export function seed(): Campaign[] {
       status: r[6] as Status,
       version: 1,
       copy: String(r[7]),
-      findings: scan(String(r[7])),
+      findings: scan(String(r[7]), String(r[1])),
       checks: approved ? [...checks] : [],
-      scope: "United States · Adults 18+ · Approved product availability only",
+      scope: "California · Adults 18+ · Approved product availability only",
+      jurisdictions: "CA",
       expires: approved ? dayOffset(i === 7 ? -1 : 30) : "",
       history: [
         {
@@ -961,6 +1043,7 @@ export function seed(): Campaign[] {
           addedAt: at,
         },
       ];
+    if (approved) c.checks = reviewChecks(c);
     if (approved)
       c.approvals = [
         snapshot(
@@ -1063,6 +1146,9 @@ export function validateWorkspace(value: unknown): asserts value is Workspace {
       "Duplicate or invalid campaign ID.",
     );
     ids.add(c.id);
+    requireThat(c.jurisdictions === undefined || (typeof c.jurisdictions === "string" && jurisdictionCodes(c.jurisdictions).every(x => x in jurisdictionOptions)), "Invalid jurisdiction data.");
+    if (c.rush) requireThat(["Pending", "Approved", "Denied"].includes(c.rush.status) && typeof c.rush.reason === "string" && typeof c.rush.requestedBy === "string" && Number.isInteger(c.rush.version), "Invalid rush record.");
+
     for (const key of [
       "title",
       "copy",
@@ -1086,6 +1172,7 @@ export function validateWorkspace(value: unknown): asserts value is Workspace {
         "Approved",
         "Revoked",
         "Withdrawn",
+        "Rejected",
       ].includes(c.status) &&
         Number.isInteger(c.version) &&
         c.version > 0 &&

@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import {
   currentPolicy,
+  queueRank,
+  hasApprovedRush,
   isReviewer,
   launchBlockers,
   localDay,
@@ -152,26 +154,13 @@ export default function App() {
         0,
     );
   const needsAttention = (c: Campaign) =>
+    (c.status === "In review" && c.rush?.status === "Pending") ||
     !!c.escalated ||
     c.status === "Changes requested" ||
     c.status === "Revoked" ||
     (c.status === "In review" && c.due < today) ||
     (c.status === "Approved" &&
       launchBlockers(c, currentPolicy(workspace, c.product), today).length > 0);
-  const priority = (c: Campaign) =>
-    c.status === "Revoked"
-      ? 0
-      : c.escalated
-        ? 1
-        : c.status === "Approved" && needsAttention(c)
-          ? 2
-          : c.status === "In review" && c.due < today
-            ? 3
-            : c.status === "In review"
-              ? 4
-              : c.status === "Changes requested"
-                ? 5
-                : 6;
   const filtered = campaigns
     .filter(
       (c) =>
@@ -181,14 +170,14 @@ export default function App() {
             c.status === "In review") ||
           (tab === "Needs attention" && needsAttention(c)) ||
           (tab === "Launch ready" && ready.includes(c)) ||
-          (tab === "Closed" && c.status === "Withdrawn")) &&
+          (tab === "Closed" && ["Withdrawn", "Rejected"].includes(c.status))) &&
         (product === "All products" || c.product === product) &&
         (channel === "All channels" || c.channel === channel) &&
         `${c.title} ${c.id} ${c.partner} ${c.owner}`
           .toLowerCase()
           .includes(query.toLowerCase()),
     )
-    .sort((a, b) => priority(a) - priority(b) || a.due.localeCompare(b.due));
+    .sort((a, b) => queueRank(a, currentPolicy(workspace, a.product), today) - queueRank(b, currentPolicy(workspace, b.product), today) || a.submittedAt.localeCompare(b.submittedAt) || a.id.localeCompare(b.id));
   const navigate = (p: string) => {
     setPage(p);
     setSelected(null);
@@ -394,7 +383,7 @@ export default function App() {
                         : page === "Overview"
                           ? "Find review bottlenecks, rebalance work, and see what is holding up campaign launches."
                           : page === "Policy library"
-                            ? "Versioned internal guidance. Policy changes trigger re-review before launch."
+                            ? "Versioned internal guidance and offer terms. Publish rate or rule changes to require re-review before launch."
                             : page === "Product walkthrough"
                               ? "A captioned product walkthrough. Follow one campaign through the decisions that matter."
                               : page === "Workspace team"
@@ -447,7 +436,7 @@ export default function App() {
                           Icon: AlertTriangle,
                           title: "Needs attention",
                           n: campaigns.filter(needsAttention).length,
-                          sub: "Escalations, revisions & holds",
+                          sub: "Rush requests, escalations & holds",
                           color: "lavender",
                         },
                         {
@@ -503,8 +492,8 @@ export default function App() {
                                 </span>
                               </h2>
                               <p>
-                                Escalations and distribution holds first, then
-                                due dates.
+                                Distribution holds first, then lead-approved rushes.
+                                Other reviews use submission order.
                               </p>
                             </div>
                             <button
@@ -623,6 +612,8 @@ export default function App() {
                                         )}
                                         today={today}
                                       />
+                                      {hasApprovedRush(x) && <small className="pill blue">Lead-approved rush</small>}
+                                      {x.rush?.status === "Pending" && x.status === "In review" && <small>Rush pending · priority unchanged</small>}
                                       {x.escalated && (
                                         <small className="red">
                                           Lead escalation
@@ -762,7 +753,7 @@ export default function App() {
                                 className="secondary space-top"
                                 onClick={() => setModal(`policy:${p}`)}
                               >
-                                Publish next version
+                                Publish policy / terms update
                               </button>
                             )}
                           </article>

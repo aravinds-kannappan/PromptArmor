@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   applyAction,
   approvalError,
-  checks,
+  reviewChecks,
   currentPolicy,
   dayOffset,
   launchBlockers,
@@ -23,7 +23,7 @@ const get = (w: Workspace, id = "CP-1045") =>
 const note = "Verified exact terms, eligibility, and scope.";
 const prepared = () => {
   const w = seedWorkspace();
-  get(w).checks = [...checks];
+  get(w).checks = reviewChecks(get(w));
   get(w).expires = dayOffset(20);
   return w;
 };
@@ -32,6 +32,7 @@ const brief: () => Intake = () => ({
   title: "A new qualified offer",
   copy: "Explore product options subject to credit approval. Full APR and fees apply.",
   scope: "California · eligible adults 18+",
+  jurisdictions: "CA",
   partner: "In-house",
   product: "Personal loans",
   channel: "Email",
@@ -49,7 +50,7 @@ describe("approval and evidence boundaries", () => {
       f.note = note;
     });
     expect(approvalError(c, "Sarah Chen")).toContain("checks");
-    c.checks = [...checks];
+    c.checks = reviewChecks(c);
     expect(approvalError(c, "Sarah Chen")).toContain("evidence");
   });
   it("requires an independent assigned compliance reviewer", () => {
@@ -238,7 +239,7 @@ describe("revisions, roles, and intake", () => {
   it("scope-only changes create a version and invalidate evidence and checks", () => {
     const w = seedWorkspace(),
       c = get(w, "CP-1046");
-    c.checks = [...checks];
+    c.checks = reviewChecks(c);
     c.evidence = structuredClone(get(w).evidence);
     const n = act(
       w,
@@ -481,7 +482,7 @@ describe("custom workspace identities", () => {
       },
       "Priya Shah",
     );
-    for (const check of checks)
+    for (const check of reviewChecks(w.campaigns[0]))
       w = act(w, { type: "check", id, check, checked: true }, "Jordan Ellis");
     w = act(
       w,

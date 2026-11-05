@@ -1,3 +1,4 @@
+import { Jurisdictions } from "./Jurisdictions";
 import { useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import {
@@ -98,6 +99,8 @@ export function Submission({
           e.preventDefault();
           if (busy) return;
           const d = Object.fromEntries(new FormData(e.currentTarget)) as Intake;
+          d.jurisdictions = new FormData(e.currentTarget).getAll("state").join(",");
+          delete (d as unknown as Record<string, string>).state;
           setBusy(true);
           if (await run({ type: "submit", data: d })) onClose();
           setBusy(false);
@@ -163,6 +166,8 @@ export function Submission({
             <input type="date" name="due" min={today} required />
           </label>
         </div>
+        <Jurisdictions />
+        <p className="small muted">Requested due dates do not grant queue priority. Rush requests require independent lead approval.</p>
         <label>
           Audience and geographic scope
           <input

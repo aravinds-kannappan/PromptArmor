@@ -1,3 +1,4 @@
+import { Jurisdictions } from "./Jurisdictions";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -13,7 +14,9 @@ import {
 } from "lucide-react";
 import {
   approvalError,
-  checks,
+  reviewChecks,
+  jurisdictionError,
+  jurisdictionCodes,
   currentPolicy,
   isReviewer,
   launchBlockers,
@@ -121,7 +124,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
             <b>Escalated to compliance lead</b>
             <p>{c.escalated}</p>
           </div>
-          {isLead(person, workspace) && (
+          {c.status === "In review" && isLead(person, workspace) && (
             <button
               className="secondary"
               onClick={() => reasonAction("clearEscalation")}
@@ -199,6 +202,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
           </div>
           <div className="scope">
             <h4>Approval scope</h4>
+            <p>Distribution states: {jurisdictionCodes(c.jurisdictions).join(", ") || "Not selected — revision required"}</p>
             <p>{c.scope}</p>
             <small>
               Bound to this product, channel, partner, creative version,
@@ -375,7 +379,8 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                   Handoffs, evidence changes, and policy acknowledgements reset
                   these checks.
                 </p>
-                {checks.map((check) => (
+                <p className="form-note">Product and state checks below are fictional internal policy fixtures. Verify the actual disclosures against captured terms. {jurisdictionError(c)}</p>
+                {reviewChecks(c).map((check) => (
                   <label className="check-row" key={check}>
                     <input
                       type="checkbox"
@@ -480,6 +485,11 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
               ))}
             {tab === "Versions" && (
               <>
+                {c.rejection && <article className="evidence-card">
+                  <h3>Rejected v{c.rejection.version} · Policy v{c.rejection.policyVersion}</h3>
+                  <p>{c.rejection.note}</p><small>{c.rejection.by} · {new Date(c.rejection.at).toLocaleString()}</small>
+                  <button className="text-button space-top" onClick={() => download(c.rejection, `${c.id}-rejection.json`)}>Export rejection snapshot</button>
+                </article>}
                 {c.approvals.length > 0 && (
                   <>
                     <h3>Decision snapshots</h3>
@@ -516,6 +526,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     version: c.version,
                     copy: c.copy,
                     scope: c.scope,
+                    jurisdictions: c.jurisdictions,
                     destinationCopy: c.destinationCopy,
                     review: undefined,
                   },
@@ -531,6 +542,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                       </h4>
                       <p className="preserve">{v.copy}</p>
                       {v.scope && <small>Scope: {v.scope}</small>}
+                      <small>States: {jurisdictionCodes(v.review?.jurisdictions || (v.version === c.version ? c.jurisdictions : undefined)).join(", ") || "Not recorded"}</small>
                       {v.review && (
                         <button
                           className="text-button space-top"
@@ -559,6 +571,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
             {c.status === "In review" ? (
               <>
                 <h3>Review decision</h3>
+                <p className="small muted">Request changes for a fixable brief. Reject to close a campaign that should not proceed; rejection cannot be reopened.</p>
                 <label>
                   Approval valid through
                   <input
@@ -626,6 +639,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     <Check size={16} /> Approve
                   </button>
                 </div>
+                {canReview && <button className="danger-button space-top" disabled={busy} onClick={() => reasonAction("reject")}>Reject campaign</button>}
                 {!c.escalated &&
                   (person === c.owner || isReviewer(person, workspace)) && (
                     <button
@@ -643,7 +657,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     ? "Approval controls"
                     : c.status === "Revoked"
                       ? "Distribution must stop"
-                      : c.status === "Withdrawn"
+                      : ["Withdrawn", "Rejected"].includes(c.status)
                         ? "Campaign closed"
                         : "Waiting for the campaign owner"}
                 </h3>
@@ -673,7 +687,20 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                 </div>
               </>
             )}
-            {c.status !== "Withdrawn" &&
+            {c.status === "Rejected" && <p className="form-note">Rejected: {c.rejection?.note || "See activity for the decision."} Submit a new campaign for a materially different proposal.</p>}
+            {c.status === "In review" && <section className="rush-panel" aria-label="Rush request">
+              <h3>Rush review</h3>
+              <p className="small muted">Normal reviews use submission order. A requested deadline or escalation does not move work ahead. Rush approval never waives compliance checks.</p>
+              {c.rush && c.rush.version === c.version ? <>
+                <p><b>{c.rush.status}</b> · {c.rush.reason}</p>
+                {c.rush.decision && <p className="small muted">{c.rush.decidedBy}: {c.rush.decision}</p>}
+                {c.rush.status === "Pending" && isLead(person, workspace) && person !== c.owner && !c.contributors.includes(person) && <div className="decision-buttons">
+                  <button className="secondary" onClick={() => reasonAction("approveRush")}>Approve rush</button>
+                  <button className="secondary" onClick={() => reasonAction("denyRush")}>Deny rush</button>
+                </div>}
+              </> : person === c.owner && <button className="secondary space-top" onClick={() => reasonAction("rush")}>Request rush review</button>}
+            </section>}
+            {!["Withdrawn", "Rejected"].includes(c.status) &&
               (person === c.owner || isLead(person, workspace)) && (
                 <button
                   className="text-button space-top"
@@ -698,6 +725,10 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     ? "Submit a revised version"
                     : (
                         {
+                          reject: "Reject this campaign",
+                          rush: "Request rush review",
+                          approveRush: "Approve rush priority",
+                          denyRush: "Deny rush priority",
                           reopen: "Reopen for review",
                           revoke: "Revoke this approval",
                           withdraw: "Withdraw this campaign",
@@ -746,12 +777,17 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                   id: c.id,
                   copy: d.copy,
                   scope: d.scope,
+                  jurisdictions: new FormData(e.currentTarget).getAll("state").join(","),
                   destination: d.destination,
                   destinationCopy: d.destinationCopy,
                 };
               else
                 action = {
                   type: modal as
+                    | "reject"
+                    | "rush"
+                    | "approveRush"
+                    | "denyRush"
                     | "reopen"
                     | "revoke"
                     | "withdraw"
@@ -867,6 +903,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     required
                   />
                 </label>
+                <Jurisdictions value={c.jurisdictions} />
                 <label>
                   Audience and geographic scope
                   <input
@@ -900,7 +937,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
             ) : (
               <>
                 <p className="small muted">
-                  {modal === "revoke" || modal === "withdraw"
+                  {modal === "reject" ? "This closes the campaign permanently. Use Request changes for fixable issues. The exact rejected version and reason are retained." : modal === "rush" ? "Explain the business deadline and impact. One request per version; only an independent lead can change priority." : modal === "approveRush" || modal === "denyRush" ? "Document the tradeoff against other queued work. All evidence and approval checks remain required." : modal === "revoke" || modal === "withdraw"
                     ? "This immediately removes launch clearance. The decision history will be preserved."
                     : "The reason will be recorded in the campaign activity."}
                 </p>
@@ -933,7 +970,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                         ? "Revoke approval"
                         : modal === "withdraw"
                           ? "Withdraw campaign"
-                          : "Confirm"}
+                          : modal === "reject" ? "Confirm rejection" : modal === "rush" ? "Submit rush request" : modal === "approveRush" ? "Approve rush priority" : modal === "denyRush" ? "Deny rush priority" : "Confirm"}
               </button>
             </div>
           </form>
