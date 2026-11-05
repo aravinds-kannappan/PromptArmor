@@ -421,3 +421,31 @@ describe("pre-check precision and safe records", () => {
     expect(launchBlockers(migrated.campaigns[0], 2).length).toBeGreaterThan(0);
   });
 });
+
+describe("sample chronology", () => {
+  it("places decisions after submission and their applicable policy", () => {
+    const w = seedWorkspace();
+    for (const c of w.campaigns) {
+      for (const decision of c.approvals) {
+        const policy = w.policies.find(
+          (p) =>
+            p.product === c.product && p.version === decision.policyVersion,
+        )!;
+        expect(Date.parse(decision.at)).toBeGreaterThan(
+          Date.parse(c.submittedAt),
+        );
+        expect(Date.parse(decision.at)).toBeGreaterThan(Date.parse(policy.at));
+        if (c.policyVersion < currentPolicy(w, c.product)) {
+          const current = w.policies.find(
+            (p) =>
+              p.product === c.product &&
+              p.version === currentPolicy(w, c.product),
+          )!;
+          expect(Date.parse(current.at)).toBeGreaterThan(
+            Date.parse(decision.at),
+          );
+        }
+      }
+    }
+  });
+});

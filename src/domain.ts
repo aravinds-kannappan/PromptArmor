@@ -843,7 +843,9 @@ export function seed(): Campaign[] {
   ];
   return rows.map((r, i) => {
     const approved = r[6] === "Approved";
-    const at = new Date(Date.now() - (i + 1) * 86400000).toISOString();
+    const at = new Date(
+      Date.now() - (i === 6 ? 21 : i + 1) * 86400000,
+    ).toISOString();
     const c: Campaign = {
       id: `CP-${1048 - i}`,
       title: String(r[0]),
@@ -886,8 +888,15 @@ export function seed(): Campaign[] {
         i === 4
           ? "Partner is requesting a guaranteed-approval headline. Lead guidance needed."
           : "",
-      submittedAt: at,
+      submittedAt: approved
+        ? new Date(Date.parse(at) - 86400000).toISOString()
+        : at,
     };
+    if (approved)
+      c.history.push({
+        at: c.submittedAt,
+        text: `${c.owner} submitted version 1 for review.`,
+      });
     if (approved || i === 3)
       c.evidence = [
         {
@@ -924,7 +933,7 @@ export function seedWorkspace(): Workspace {
         product,
         version: 1,
         summary: "Initial illustrative review policy.",
-        at: "2026-01-01T12:00:00Z",
+        at: new Date(Date.now() - 60 * 86400000).toISOString(),
         by: "Sarah Chen",
       },
       {
@@ -932,7 +941,7 @@ export function seedWorkspace(): Workspace {
         version: 2,
         summary:
           "Require current evidence and version-specific destination review. Re-review prior approvals before launch.",
-        at: "2026-11-01T12:00:00Z",
+        at: new Date(Date.now() - 14 * 86400000).toISOString(),
         by: "Sarah Chen",
       },
     ]),

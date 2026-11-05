@@ -79,7 +79,7 @@ React + TypeScript + Vite, Lucide icons, locally bundled DM Sans and Manrope. No
 
 ## Verification
 
-- **45 automated tests** cover decision gates, date boundaries, evidence lifecycle, policy changes, escalation, authorship, handoff, revisions, revocation, withdrawal, duplicate intake, advisory precision, URL safety, record migration, corruption recovery, stale writes, and quota failures.
+- **46 automated tests** cover decision gates, date boundaries, evidence lifecycle, policy changes, escalation, authorship, handoff, revisions, revocation, withdrawal, duplicate intake, advisory precision, URL safety, record migration, corruption recovery, stale writes, and quota failures.
 - TypeScript and production build pass.
 - Browser verification covers launch-ready approval and snapshots, revocation, policy-change holds, cross-tab notifications, and modal draft-discard protection.
 
