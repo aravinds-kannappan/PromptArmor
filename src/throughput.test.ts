@@ -118,3 +118,26 @@ describe("assignment, diff and measurements", () => {
     }
   });
 });
+
+describe("product review follow-up safeguards", () => {
+  it("blocks rejected copy moved between variant slots or into an existing revision", () => {
+    const variantCopy = "Explore an alternative loan with clear terms. Unsubscribe.";
+    let w = submit({...brief, variantCopy});
+    const rejected = w.campaigns[0];
+    w = applyAction(w, {type: "reject", id: rejected.id, reason: note}, rejected.reviewer);
+    for (const data of [
+      {...brief, title:"Renamed pair", copy:variantCopy, variantCopy:brief.copy},
+      {...brief, title:"Hidden rejected variant", copy:"A new loan creative with eligibility terms. Unsubscribe.", variantCopy:brief.copy},
+    ]) expect(() => applyAction(w,{type:"submit",data},rejected.owner)).toThrow(/were rejected/);
+    w = applyAction(w,{type:"submit",data:{...brief,title:"Separate proposal",copy:"A distinct loan proposal for the same market. Unsubscribe."}},rejected.owner);
+    const other = w.campaigns[0];
+    w = applyAction(w,{type:"request",id:other.id,reason:note},other.reviewer);
+    expect(() => applyAction(w,{type:"revise",id:other.id,copy:other.copy,variantCopy,scope:other.scope,destination:"",destinationCopy:""},other.owner)).toThrow(/were rejected/);
+  });
+  it("includes pending revisions and revoked follow-ups when recommending assignment", () => {
+    const w = seedWorkspace();
+    w.campaigns = w.campaigns.slice(0,3);
+    w.campaigns.forEach((c,i) => {c.reviewer = i < 2 ? "Jamie Lee" : "Sarah Chen"; c.status = i === 0 ? "Changes requested" : i === 1 ? "Revoked" : "In review";});
+    expect(suggestedReviewer(w,"Alex Morgan")).toBe("Sarah Chen");
+  });
+});

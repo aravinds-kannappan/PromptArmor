@@ -4,9 +4,11 @@
 
 **[Try the app](https://aravinds-kannappan.github.io/PromptArmor/)** · **[GitHub](https://github.com/aravinds-kannappan/PromptArmor)**
 
-ClearPath Financial is a fictional consumer lender. Its Excel-and-email process slows growth because reviewers receive incomplete briefs, repeat checks, and chase revisions. I built a workspace where marketers catch obvious issues before submission and reviewers spend their attention on what changed.
+ClearPath Financial is a fictional consumer lender. Its Excel-and-email review process is bottlenecking growth. My working assumption is that incomplete briefs, repeated checks, and revision handoffs consume a meaningful share of review capacity. I built a workspace where marketers catch obvious issues before submission and reviewers spend their attention on what changed.
 
-Marketing owns the copy. Compliance owns the decision. Leads handle exceptions. You can use the samples or add your own team and campaigns—everything stays in your browser.
+**The primary user is the compliance reviewer:** they need a complete brief, actionable findings, and a clear decision path. Marketing owners supply and revise the copy; compliance leads handle exceptions and changing terms. You can use the samples or add your own team and campaigns—everything stays in your browser.
+
+**The minimum workflow:** capture the exact creative and distribution scope, assign an independent reviewer, preserve feedback across revisions, and make current launch clearance unambiguous. I assume the team already has approved product terms and someone responsible for policy updates. If specialist capacity is the main constraint, reducing coordination alone will not solve it.
 
 ## What should make reviews faster?
 
@@ -40,7 +42,7 @@ For a pilot, compare similar campaign mixes and staffing against Excel/email: fe
 
 - **Small edits can have big consequences.** Fast-lane eligibility excludes wording, numbers, states, audience, destination, policy changes, expired evidence and reviewer handoffs. It cannot extend the original approval or bypass open findings.
 - **Urgency is not permission.** Rush requires an independent lead and a justification. Repeat requests cannot game priority; distribution holds remain first.
-- **Fixable versus unacceptable.** Request changes permits revision. Rejection closes the campaign; renaming an identical rejected proposal does not reopen it.
+- **Fixable versus unacceptable.** Request changes permits revision. Rejection closes the campaign; renaming rejected copy, moving it between A/B slots, or inserting it into another revision does not reopen it for the same scope.
 - **Approval has a scope and a shelf life.** Product/state checks combine across selected markets. Unsupported markets block approval. Evidence expiry, published policy updates and revocation stop clearance while retaining history.
 - **Independence and persistence.** Authors cannot approve their own work. Stale-tab writes are rejected, failed saves preserve drafts, and damaged local records have a recovery path.
 
@@ -57,4 +59,4 @@ For a pilot, compare similar campaign mixes and staffing against Excel/email: fe
 
 Node.js 22+: `npm ci`, `npm run dev`. Validate with `npm test` and `npm run build`.
 
-87 tests cover workflow safeguards, intake gates, variants, delta approval, assignment, metrics and persistence. GitHub Actions tests and builds before deploying. Rules live in `src/domain.ts`, persistence in `src/storage.ts`, and forms/review UI in `src/components/`.
+89 tests cover workflow safeguards, intake gates, variants, delta approval, assignment, metrics and persistence. GitHub Actions tests and builds before deploying. Rules live in `src/domain.ts`, persistence in `src/storage.ts`, and forms/review UI in `src/components/`.

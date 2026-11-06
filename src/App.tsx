@@ -23,6 +23,7 @@ import {
 import {
   currentPolicy,
   throughputMetrics,
+  reviewerLoad,
   queueRank,
   hasApprovedRush,
   isReviewer,
@@ -1078,6 +1079,7 @@ function Overview({
       launchBlockers(c, currentPolicy(workspace, c.product), today).length,
   );
   const metrics = throughputMetrics(workspace);
+  const commitments = membersOf(workspace).filter(m => isReviewer(m.name, workspace)).reduce((sum, m) => sum + reviewerLoad(workspace, m.name), 0);
   return (
     <div className="overview-grid">
       <section className="panel throughput-panel" aria-labelledby="throughput-heading">
@@ -1108,19 +1110,20 @@ function Overview({
           <span className="pill blue">{active.length} open reviews</span>
         </div>
         <p className="small muted">
-          Use a reasoned handoff when ownership needs to change.
+          Assignment counts active reviews, requested revisions, and revoked assets awaiting follow-up. Use a reasoned handoff when ownership needs to change.
         </p>
         {membersOf(workspace)
           .map((m) => m.name)
           .filter((p) => isReviewer(p, workspace))
           .map((p) => {
             const count = active.filter((c) => c.reviewer === p).length;
+            const load = reviewerLoad(workspace, p);
             return (
               <div className="workload" key={p}>
                 <div>
                   <b>{p}</b>
                   <span>
-                    {count} active ·{" "}
+                    {load} commitments · {count} active ·{" "}
                     {
                       active.filter((c) => c.reviewer === p && c.due < today)
                         .length
@@ -1131,7 +1134,7 @@ function Overview({
                 <div className="meter">
                   <span
                     style={{
-                      width: `${active.length ? (count / active.length) * 100 : 0}%`,
+                      width: `${commitments ? (load / commitments) * 100 : 0}%`,
                     }}
                   />
                 </div>

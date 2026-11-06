@@ -536,7 +536,7 @@ export function applyAction(
         "Affiliate campaigns require a named partner, HTTPS destination, and landing-page copy (20+ characters).",
       );
     validateIntakeChecks(d);
-    requireThat(!w.campaigns.some(c => c.status === "Rejected" && normalize(c.copy) === normalize(d.copy) && c.product === d.product && c.channel === d.channel && normalize(c.partner) === normalize(d.partner) && c.jurisdictions === d.jurisdictions && normalize(c.scope) === normalize(d.scope)), "This exact offer and distribution scope were rejected. Submit a materially different proposal; renaming it does not reopen the decision.");
+    rejectRepeatedProposal(w, d);
     requireThat(
       !w.campaigns.some(
         (c) =>
@@ -816,6 +816,7 @@ export function applyAction(
         requireThat(typeof states === "string" && jurisdictionCodes(states).length > 0 && jurisdictionCodes(states).every(x => x in jurisdictionOptions), "Select distribution states for the revision.");
         requireThat(!action.destination || safeUrl(action.destination), "Destination must be a valid HTTPS URL without credentials.");
         const normalizedStates = [...new Set(jurisdictionCodes(states))].sort().join(",");
+        rejectRepeatedProposal(w, { ...c, ...action, jurisdictions: normalizedStates });
         requireThat(
           (action.variantCopy ?? c.variantCopy ?? "") !== (c.variantCopy ?? "") ||
           normalizedStates !== c.jurisdictions ||
@@ -1350,4 +1351,15 @@ export function textDiff(before: string, after: string) {
   let end = 0;
   while (end < before.length-start && end < after.length-start && before[before.length-1-end] === after[after.length-1-end]) end++;
   return { prefix: before.slice(0,start), removed: before.slice(start, before.length-end), added: after.slice(start,after.length-end), suffix: end ? before.slice(-end) : "" };
+}
+
+/** A pair shares one terminal decision; moving rejected copy between A/B is not a new proposal. */
+function rejectRepeatedProposal(w: Workspace, proposal: Pick<Campaign, "copy" | "variantCopy" | "product" | "channel" | "partner" | "jurisdictions" | "scope">) {
+  const creatives = (c: Pick<Campaign, "copy" | "variantCopy">) => [c.copy, c.variantCopy].filter((text): text is string => !!text?.trim()).map(normalize);
+  const incoming = creatives(proposal);
+  requireThat(!w.campaigns.some(c => c.status === "Rejected" &&
+    c.product === proposal.product && c.channel === proposal.channel &&
+    normalize(c.partner) === normalize(proposal.partner) && c.jurisdictions === proposal.jurisdictions &&
+    normalize(c.scope) === normalize(proposal.scope) && creatives(c).some(copy => incoming.includes(copy))),
+    "This exact offer and distribution scope were rejected. Submit a materially different proposal; renaming it or moving it between variants does not reopen the decision.");
 }
