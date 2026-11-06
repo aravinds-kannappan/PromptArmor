@@ -1944,38 +1944,6 @@ dialog label {
 .inline-error .modal-actions {
   margin-top: 12px;
 }
-.walkthrough-player video {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16/9;
-  background: #122d25;
-}
-.walkthrough-details {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 24px;
-}
-.walkthrough-details p {
-  font-size: 12px;
-  line-height: 1.7;
-  color: #6c7c64;
-  margin-top: 8px;
-}
-.walkthrough-details a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-@media (max-width: 700px) {
-  .walkthrough-details {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 18px;
-  }
-}
 .own-work-banner {
   display: flex;
   justify-content: space-between;
@@ -2096,3 +2064,16 @@ dialog label {
 .jurisdiction-fields input { width: auto; flex: 0 0 auto; }
 .rush-panel { border-top: 1px solid #d8e1cf; margin-top: 20px; padding-top: 18px; }
 .rush-panel p { font-size: 12px; line-height: 1.7; margin: 8px 0; overflow-wrap: anywhere; }
+
+.precheck, .delta-panel { padding: 22px; margin: 18px 0; border: 1px solid #cbdcd4; border-radius: 12px; background: #f4faf7; }
+.precheck-item { padding: 12px 0; border-bottom: 1px solid #dce5df; font-size: 13px; }
+.precheck-item p { margin-top: 6px; line-height: 1.6; }
+.precheck label, .delta-panel label { margin-top: 16px; }
+.copy-diff { padding: 12px; margin: 10px 0 18px; background: white; border-radius: 8px; overflow-wrap: anywhere; }
+.copy-diff del { background: #ffe4e1; white-space: pre-wrap; }
+.copy-diff ins { background: #dcf5df; white-space: pre-wrap; }
+.copy-diff p { margin-bottom: 8px; }
+.throughput-metrics { flex-wrap: wrap; gap: 20px; display: grid; grid-template-columns: 1fr 1fr; }
+.finding blockquote { padding: 12px; border-left: 3px solid #43836a; background: #f2f6f4; overflow-wrap: anywhere; }
+.full-creative-toggle { padding: 14px 20px; cursor: pointer; color: var(--muted); font-size: 12px; }
+.ad p { white-space: pre-wrap; }

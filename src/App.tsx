@@ -18,11 +18,11 @@ import {
   SlidersHorizontal,
   X,
   AlertTriangle,
-  PlayCircle,
   Users,
 } from "lucide-react";
 import {
   currentPolicy,
+  throughputMetrics,
   queueRank,
   hasApprovedRush,
   isReviewer,
@@ -55,6 +55,7 @@ import {
 import { Submission } from "./components/Submission";
 import { Review } from "./components/Review";
 export default function App() {
+  const [, refreshClock] = useState(0);
   const initial = useRef(loadWorkspace());
   const [workspace, setWorkspace] = useState<Workspace>(
       initial.current.workspace,
@@ -91,7 +92,7 @@ export default function App() {
       if (e.key === STORAGE_KEY || e.key === null) setStale(true);
     };
     window.addEventListener("storage", changed);
-    const timer = setInterval(() => setToday(localDay()), 30000);
+    const timer = setInterval(() => { setToday(localDay()); refreshClock(n => n + 1); }, 30000);
     return () => {
       window.removeEventListener("storage", changed);
       clearInterval(timer);
@@ -229,7 +230,6 @@ export default function App() {
               { Icon: Inbox, label: "Review queue" },
               { Icon: BookOpen, label: "Policy library" },
               { Icon: History, label: "Audit trail" },
-              { Icon: PlayCircle, label: "Product walkthrough" },
               { Icon: Users, label: "Workspace team" },
             ].map(({ Icon, label }) => (
               <button
@@ -371,8 +371,7 @@ export default function App() {
                           ? "See what needs your attention."
                           : page === "Policy library"
                             ? "Consistent reviews start here."
-                            : page === "Product walkthrough"
-                              ? "From first review to confident launch."
+
                               : page === "Workspace team"
                                 ? "Make the workspace yours."
                                 : "Every decision, accounted for."}
@@ -384,8 +383,6 @@ export default function App() {
                           ? "Find review bottlenecks, rebalance work, and see what is holding up campaign launches."
                           : page === "Policy library"
                             ? "Versioned internal guidance and offer terms. Publish rate or rule changes to require re-review before launch."
-                            : page === "Product walkthrough"
-                              ? "A captioned product walkthrough. Follow one campaign through the decisions that matter."
                               : page === "Workspace team"
                                 ? "Add your own names and choose who submits, reviews, and leads compliance."
                                 : "A record of decisions, evidence, handoffs, and creative revisions."}
@@ -800,50 +797,6 @@ export default function App() {
                       ))}
                   </section>
                 )}
-                {page === "Product walkthrough" && (
-                  <section className="panel walkthrough-player">
-                    <video
-                      controls
-                      preload="metadata"
-                      poster="./media/clearpath-walkthrough-poster.jpg?v=live-cursor-2"
-                      playsInline
-                      aria-label="ClearPath Review captioned product walkthrough"
-                    >
-                      <source
-                        src="./media/clearpath-walkthrough.mp4?v=live-cursor-2"
-                        type="video/mp4"
-                      />
-                      <track
-                        kind="captions"
-                        src="./media/clearpath-walkthrough.vtt?v=live-cursor-2"
-                        srcLang="en"
-                        label="English"
-                      />
-                      Your browser does not support video playback.{" "}
-                      <a href="./media/clearpath-walkthrough.mp4?v=live-cursor-2">
-                        Download the walkthrough
-                      </a>
-                      .
-                    </video>
-                    <div className="walkthrough-details">
-                      <div>
-                        <h2>One campaign. A clear chain of decisions.</h2>
-                        <p>
-                          Live browser recording with a visible cursor and timed
-                          explanations. Includes creating a custom campaign. No
-                          audio required.
-                        </p>
-                      </div>
-                      <a
-                        className="secondary"
-                        href="./media/clearpath-walkthrough.mp4?v=live-cursor-2"
-                        download
-                      >
-                        <Download size={15} /> Download video
-                      </a>
-                    </div>
-                  </section>
-                )}
                 {page === "Workspace team" && (
                   <section className="panel team-panel">
                     <div className="notice neutral-tone">
@@ -1124,33 +1077,20 @@ function Overview({
       c.status === "Approved" &&
       launchBlockers(c, currentPolicy(workspace, c.product), today).length,
   );
-  const decisions = workspace.campaigns
-    .flatMap((c) =>
-      c.approvals.map((a) =>
-        Math.max(0, (Date.parse(a.at) - Date.parse(c.submittedAt)) / 3600000),
-      ),
-    )
-    .sort((a, b) => a - b);
-  const median = decisions.length
-    ? decisions.length % 2
-      ? decisions[Math.floor(decisions.length / 2)]
-      : (decisions[decisions.length / 2 - 1] +
-          decisions[decisions.length / 2]) /
-        2
-    : null;
+  const metrics = throughputMetrics(workspace);
   return (
     <div className="overview-grid">
       <section className="panel throughput-panel" aria-labelledby="throughput-heading">
         <div className="eyebrow">FROM REVIEW CAPACITY TO GROWTH</div>
-        <h2 id="throughput-heading">Less coordination work. More capacity for campaigns.</h2>
+        <h2 id="throughput-heading">Fewer rounds per asset. Less reviewer time per item.</h2>
         <p className="throughput-intro">
           The goal is more completed reviews with the same team, helping marketing
           launch sooner while keeping evidence and independent human review required.
         </p>
         <div className="throughput-steps">
-          <div><span>01 / COMPLETE INTAKE</span><h3>Fewer clarification loops</h3><p>Capture copy, audience, channel, and ownership before review starts.</p></div>
-          <div><span>02 / FOCUSED REVIEW</span><h3>Less time reconstructing context</h3><p>Keep advisory flags, evidence, feedback, and revisions in one campaign record.</p></div>
-          <div><span>03 / CLEAR NEXT ACTION</span><h3>Less waiting between people</h3><p>See overdue work and reviewer load; hand off reviews and identify launch blockers.</p></div>
+          <div><span>01 / COMPLETE INTAKE</span><h3>Fewer clarification loops</h3><p>Fix obvious claims before submission. Reviewers receive a complete brief and any explicit exceptions.</p></div>
+          <div><span>02 / FOCUSED REVIEW</span><h3>Less time reconstructing context</h3><p>Compare revisions, approve eligible layout-only deltas, and review A/B creatives together.</p></div>
+          <div><span>03 / CLEAR NEXT ACTION</span><h3>Less waiting between people</h3><p>Suggest the least-loaded reviewer and measure decisions, review rounds, and queue age.</p></div>
         </div>
         <div className="throughput-validation">
           <b>How we would validate the benefit</b>
@@ -1198,22 +1138,18 @@ function Overview({
               </div>
             );
           })}
-        <div className="metric-pair">
-          <div>
-            <strong>{median === null ? "—" : `${median.toFixed(1)}h`}</strong>
-            <small>Median submission → approval</small>
-          </div>
-          <div>
-            <strong>
-              {workspace.campaigns.filter((c) => c.version > 1).length}
-            </strong>
-            <small>Campaigns with revisions</small>
-          </div>
+        <div className="metric-pair throughput-metrics">
+          {[
+            ["First-pass approval", metrics.firstPass, "%"],
+            ["Decision rounds / asset", metrics.rounds, ""],
+            ["Median time to first decision", metrics.firstDecision, "h"],
+            ["Mean round turnaround", metrics.roundHours, "h"],
+            ["Median active queue age", metrics.queueAge, "h"],
+            ["Recorded decisions", metrics.decisions, ""],
+          ].map(([label, value, unit]) => <div key={String(label)}><strong>{value === null ? "—" : `${Number(value).toFixed(label === "Recorded decisions" ? 0 : 1)}${unit}`}</strong><small>{label}</small></div>)}
         </div>
-        <p className="small muted">
-          Descriptive demo data, not a measured throughput improvement. Time
-          includes all elapsed hours; no business-hours SLA is implied.
-        </p>
+        <p className="small muted">{metrics.sample} assets with recorded decisions. First pass means the first decision approved v1; request changes and rejection count against it. Rounds include every approval, request-changes and rejection decision, including repeat reviews. Open rounds are excluded from turnaround and shown in queue age.</p>
+        <p className="small muted">Calendar hours, not active reviewer effort or a business-hours SLA. Sample data is illustrative. Legacy records without complete decision tracking are excluded from decision metrics; newly submitted assets are tracked. Compare against an Excel/email baseline before claiming an improvement.</p>
       </section>
       <section className="panel overview-panel">
         <h2>Distribution holds</h2>

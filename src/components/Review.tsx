@@ -1,3 +1,4 @@
+import { Precheck } from "./Precheck";
 import { Jurisdictions } from "./Jurisdictions";
 import { useState } from "react";
 import {
@@ -14,6 +15,9 @@ import {
 } from "lucide-react";
 import {
   approvalError,
+  deltaEligible,
+  textDiff,
+  elapsedHours,
   reviewChecks,
   jurisdictionError,
   jurisdictionCodes,
@@ -43,8 +47,15 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
     [findingNotes, setFindingNotes] = useState<Record<string, string>>({}),
     [modal, setModal] = useState(""),
     [busy, setBusy] = useState(false);
+  const [revisionCopy, setRevisionCopy] = useState(c.copy);
+  const [revisionVariant, setRevisionVariant] = useState(c.variantCopy || "");
+  const [revisionDestination, setRevisionDestination] = useState(c.destinationCopy);
+  const [justification, setJustification] = useState("");
+  const [deltaNote, setDeltaNote] = useState("");
   const policy = currentPolicy(workspace, c.product),
     blockers = launchBlockers(c, policy, today);
+  const fast = deltaEligible(c, policy, today);
+  const prior = c.deltaBase || c.versions.at(-1)?.review;
   const independent =
     isReviewer(person, workspace) &&
     c.reviewer === person &&
@@ -117,6 +128,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
           <Download size={15} /> Export record
         </button>
       </div>
+      {c.status === "In review" && <p className="small muted">Current round age: {elapsedHours(c.roundStartedAt || c.submittedAt).toFixed(1)} hours · Calendar time; due date is a requested deadline, not a business-hours SLA.</p>}
       {c.escalated && (
         <div className="notice warning-tone">
           <AlertTriangle size={20} />
@@ -176,6 +188,12 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
           </div>
         </div>
       )}
+      {prior && <section className="panel delta-panel">
+        <h3>{fast ? "Fast lane · review the delta" : "What changed since the previous version"}</h3>
+        <p className="small muted">{fast ? "Only whitespace/layout changed. The same reviewer can reuse current evidence and checks; approval expiry cannot be extended. Full creative remains available below." : c.status === "In review" ? "Full review required. Scope, offer, policy and evidence safeguards still apply." : "Historical comparison. Current launch readiness is shown above; previous decisions remain in Versions."}</p>
+        {(["copy", "variantCopy", "scope", "jurisdictions", "destination", "destinationCopy"] as const).filter(k => (prior[k] || "") !== (c[k] || "")).map(k => <div key={k}><h4>{({copy: "Creative A", variantCopy: "Creative B", scope: "Audience", jurisdictions: "States", destination: "URL", destinationCopy: "Landing page"})[k]}</h4><CopyDiff before={prior[k] || ""} after={c[k] || ""}/></div>)}
+        {fast && canReview && <><label>Delta review rationale<textarea value={deltaNote} onChange={e => setDeltaNote(e.target.value)} maxLength={2000} placeholder="Confirm the layout change preserves the meaning and prominence of disclosures." /></label><button className="primary" disabled={busy || deltaNote.trim().length < 10} onClick={() => perform({type: "approveDelta", id: c.id, expires: c.deltaBase!.expires, note: deltaNote})}>Approve delta · retain original expiry</button></>}
+      </section>}
       <div className="review-layout">
         <section className="panel creative">
           <div className="panel-title">
@@ -184,6 +202,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
             </span>
             <span className="muted">Illustrative preview</span>
           </div>
+          <details open={!fast}><summary className="full-creative-toggle">Full creative and A/B variants</summary>
           <div className="creative-stage">
             <div className="ad">
               <div className="ad-brand">
@@ -194,12 +213,14 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
               </span>
               <h2>{c.title}</h2>
               <p>{c.copy}</p>
+              {c.variantCopy && <><h4>Creative B · same review</h4><p>{c.variantCopy}</p></>}
               <div className="ad-cta">
                 Explore your options <ArrowUpRight size={18} />
               </div>
               <small>Illustrative creative · {c.channel}</small>
             </div>
           </div>
+          </details>
           <div className="scope">
             <h4>Approval scope</h4>
             <p>Distribution states: {jurisdictionCodes(c.jurisdictions).join(", ") || "Not selected — revision required"}</p>
@@ -301,6 +322,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     </p>
                   </div>
                 )}
+                {c.justification && <div className="form-note">Marketer justification (not clearance): {c.justification}</div>}
                 {c.findings.map((f) => (
                   <div
                     className={"finding " + (f.resolved ? "resolved" : "")}
@@ -323,6 +345,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                             : "Open"}
                       </span>
                     </div>
+                    {f.quote && <blockquote>“{f.quote}” · v{c.version}</blockquote>}
                     <p>{f.detail}</p>
                     <label>
                       Resolution rationale
@@ -667,6 +690,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                     : "No approval is active for distribution in this state."}
                 </p>
                 <div className="decision-buttons">
+                  {c.status === "Approved" && person === c.owner && <button className="secondary" onClick={() => setModal("revise")}>Revise approved asset</button>}
                   {["Approved", "Revoked"].includes(c.status) &&
                     (person === c.reviewer || isLead(person, workspace)) && (
                       <button
@@ -770,12 +794,15 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                   id: c.id,
                   title: d.title,
                   detail: d.detail,
+                  quote: d.quote,
                 };
               else if (modal === "revise")
                 action = {
                   type: "revise",
                   id: c.id,
                   copy: d.copy,
+                  variantCopy: d.variantCopy,
+                  justification: d.justification,
                   scope: d.scope,
                   jurisdictions: new FormData(e.currentTarget).getAll("state").join(","),
                   destination: d.destination,
@@ -875,6 +902,7 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                   Finding title
                   <input name="title" minLength={3} maxLength={100} required />
                 </label>
+                <label>Exact text (optional)<textarea name="quote" maxLength={5000} placeholder="Paste an exact excerpt from creative A, B, or the destination. Anchored to this version." /></label>
                 <label>
                   What needs to change and why?
                   <textarea
@@ -889,20 +917,21 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
             ) : modal === "revise" ? (
               <>
                 <div className="form-note">
-                  Any change resets findings, evidence, and review checks. Prior
-                  decisions remain in the audit.
+                  Submitting removes current launch clearance. Full review resets evidence and checks; eligible whitespace-only changes can reuse verification after explicit delta approval. Prior decisions stay in the audit.
                 </div>
                 <label>
                   Revised campaign copy
                   <textarea
                     name="copy"
-                    defaultValue={c.copy}
+                    value={revisionCopy}
+                    onChange={e => setRevisionCopy(e.target.value)}
                     minLength={20}
                     maxLength={5000}
                     rows={5}
                     required
                   />
                 </label>
+                <label>Creative B (optional)<textarea name="variantCopy" value={revisionVariant} onChange={e => setRevisionVariant(e.target.value)} minLength={20} maxLength={5000} /></label>
                 <Jurisdictions value={c.jurisdictions} />
                 <label>
                   Audience and geographic scope
@@ -927,12 +956,14 @@ export function Review({ c, workspace, person, today, back, run }: Props) {
                   Captured landing-page copy
                   <textarea
                     name="destinationCopy"
-                    defaultValue={c.destinationCopy}
+                    value={revisionDestination}
+                    onChange={e => setRevisionDestination(e.target.value)}
                     maxLength={5000}
                     minLength={c.channel === "Affiliate" ? 20 : undefined}
                     required={c.channel === "Affiliate"}
                   />
                 </label>
+                <Precheck copy={revisionCopy} variantCopy={revisionVariant} destinationCopy={revisionDestination} product={c.product} channel={c.channel} justification={justification} onJustification={setJustification} />
               </>
             ) : (
               <>
@@ -993,4 +1024,10 @@ function Rationale() {
       />
     </label>
   );
+}
+
+function CopyDiff({before, after}: {before: string; after: string}) {
+  const d = textDiff(before, after);
+  const visible = (text: string) => text ? text.replace(/ /g, "·").replace(/\n/g, "↵\n").replace(/\t/g, "⇥") : "(nothing)";
+  return <div className="copy-diff"><p><b>Removed:</b> <del>{visible(d.removed)}</del></p><p><b>Added:</b> <ins>{visible(d.added)}</ins></p><small>· = space · ↵ = line break · ⇥ = tab</small><details><summary>Full before / after</summary><p className="preserve">{before}</p><p className="preserve">{after}</p></details></div>;
 }

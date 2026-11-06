@@ -462,7 +462,7 @@ describe("custom workspace identities", () => {
     });
     w = act(
       w,
-      { type: "submit", data: { ...brief(), reviewer: "Jordan Ellis" } },
+      { type: "submit", data: { ...brief(), copy: brief().copy + " Unsubscribe using the email footer.", reviewer: "Jordan Ellis" } },
       "Priya Shah",
     );
     const id = w.campaigns[0].id;

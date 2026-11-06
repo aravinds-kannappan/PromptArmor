@@ -1,8 +1,11 @@
+import { Precheck } from "./Precheck";
 import { Jurisdictions } from "./Jurisdictions";
 import { useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import {
   channels,
+  suggestedReviewer,
+  reviewerLoad,
   products,
   type Intake,
   type Action,
@@ -30,6 +33,10 @@ export function Submission({
   const [copy, setCopy] = useState(""),
     [importError, setImportError] = useState(""),
     [pendingCopy, setPendingCopy] = useState("");
+  const [product, setProduct] = useState<string>(products[0]);
+  const [variantCopy, setVariantCopy] = useState("");
+  const [destinationCopy, setDestinationCopy] = useState("");
+  const [justification, setJustification] = useState("");
   return (
     <Dialog title="Start with a clear brief." onClose={onClose}>
       <p className="muted">
@@ -107,12 +114,12 @@ export function Submission({
         }}
       >
         <label>
-          Assigned reviewer
-          <select name="reviewer" required>
+          Suggested reviewer · least open commitments
+          <select name="reviewer" required defaultValue={suggestedReviewer(workspace, person)}>
             {membersOf(workspace)
               .filter((m) => m.name !== person && isReviewer(m.name, workspace))
               .map((m) => (
-                <option key={m.name}>{m.name}</option>
+                <option key={m.name} value={m.name}>{m.name} · {reviewerLoad(workspace, m.name)} open commitments</option>
               ))}
           </select>
         </label>
@@ -129,7 +136,7 @@ export function Submission({
         <div className="form-grid">
           <label>
             Product
-            <select name="product">
+            <select name="product" value={product} onChange={e => setProduct(e.target.value)}>
               {products.map((p) => (
                 <option key={p}>{p}</option>
               ))}
@@ -191,6 +198,10 @@ export function Submission({
             placeholder="Include offer, claims, qualifications, and disclosures."
           />
         </label>
+        <label>Creative B (optional A/B variant)
+          <textarea name="variantCopy" value={variantCopy} onChange={e => setVariantCopy(e.target.value)} minLength={20} maxLength={5000} rows={3} placeholder="One alternate creative, sharing the same product, destination, audience and terms." />
+          <small>Both creatives receive one decision. Any unresolved issue blocks the pair.</small>
+        </label>
         <label>
           Destination URL {channel !== "Affiliate" && "(optional)"}
           <input
@@ -204,6 +215,8 @@ export function Submission({
           Captured landing-page copy {channel !== "Affiliate" && "(optional)"}
           <textarea
             name="destinationCopy"
+            value={destinationCopy}
+            onChange={e => setDestinationCopy(e.target.value)}
             required={channel === "Affiliate"}
             minLength={channel === "Affiliate" ? 20 : undefined}
             maxLength={5000}
@@ -216,6 +229,7 @@ export function Submission({
           Affiliate creative and destination are reviewed together. No website
           is fetched automatically.
         </div>
+        <Precheck {...{copy, variantCopy, destinationCopy, product, channel, justification}} onJustification={setJustification} />
         <div className="modal-actions">
           <button type="button" className="secondary" onClick={onClose}>
             Cancel

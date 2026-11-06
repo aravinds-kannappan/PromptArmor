@@ -1,60 +1,57 @@
 # ClearPath Review
 
-**[Live app](https://aravinds-kannappan.github.io/PromptArmor/)** · **[Video walkthrough](https://aravinds-kannappan.github.io/PromptArmor/walkthrough.html)** · **[Repository](https://github.com/aravinds-kannappan/PromptArmor)**
+**Fewer rounds per asset and less reviewer time per item.** That’s the goal: help the same compliance team clear more marketing work without weakening review.
 
-A marketing compliance workspace for fictional consumer finance company ClearPath Financial. Try the sample campaigns or add your own team and paste/import campaign copy. No account or API key required.
+**[Try the app](https://aravinds-kannappan.github.io/PromptArmor/)** · **[GitHub](https://github.com/aravinds-kannappan/PromptArmor)**
 
-## Product thinking
+ClearPath Financial is a fictional consumer lender. Its Excel-and-email process slows growth because reviewers receive incomplete briefs, repeat checks, and chase revisions. I built a workspace where marketers catch obvious issues before submission and reviewers spend their attention on what changed.
 
-**The bottleneck:** Excel and email scatter briefs, feedback, ownership, and approval evidence. Reviewers spend time chasing information and reconstructing context, delaying campaign launches as marketing volume grows.
+Marketing owns the copy. Compliance owns the decision. Leads handle exceptions. You can use the samples or add your own team and campaigns—everything stays in your browser.
 
-**The hypothesis:** reducing that coordination work lets the same compliance team complete more reviews and helps marketing launch sooner. This assumes avoidable back-and-forth is a meaningful constraint; software alone will not solve a shortage of specialist reviewers.
+## What should make reviews faster?
 
-The product serves three roles: marketing owners submit and revise, compliance reviewers make independent decisions, and leads handle escalations, rush priority, policy updates, and revocations.
-
-| Decision | Why it helps |
+| Feature | Work it removes |
 | --- | --- |
-| Structured intake with exact creative and distribution scope | Fewer clarification loops before review can begin. |
-| One record for findings, evidence, revisions, and decisions | Less context reconstruction and repeated checking. |
-| Clear ownership, workload visibility, and controlled priority | Less waiting between people; urgency cannot silently bypass the queue. |
-| Advisory pre-checks plus mandatory human review | Routine issues surface early while judgment stays with the reviewer. |
-| Separate historical approval from current launch readiness | Marketing can see whether the exact campaign is still cleared to run. |
+| Live intake checks | Marketers fix guaranteed-approval and “no credit check” claims before review, or explicitly justify them. APR, mortgage, promotional-period and email opt-out flags surface early. Justification never resolves a reviewer finding. |
+| Revision diff and a narrow fast lane | Reviewers see changed text first. Whitespace-only edits to a valid approved asset can reuse evidence and checks after the same reviewer approves the delta. New words, numbers, scope or destinations require full review. |
+| A/B creative pairs | Two variants share one brief, evidence set and decision. Both texts are checked separately; an issue in either blocks the pair. Less duplicated setup, not half the scrutiny. |
+| Least-loaded reviewer suggestion | Intake defaults to the independent reviewer with the fewest open commitments. Marketers can override it when expertise matters. |
+| Quoted findings and one version history | Feedback can quote exact text from the current creative or landing page. The owner gets actionable feedback without hunting through email. |
+| Visible throughput measures | The team can see whether rounds and waiting actually decrease, rather than assuming a cleaner interface made it faster. |
 
-**Measure the outcome:** compare completed decisions per reviewer per week, decision time, and revision cycles against an Excel/email baseline with similar staffing and campaign complexity. Report approvals and requests for changes separately; track decision quality and post-approval corrections so revision churn or errors do not look like productivity. The prototype demonstrates the workflow, not a measured throughput or revenue increase.
+## A 60-second demo
 
-## Edge cases that shaped the product
+1. **0–15s:** Open **Overview**. Read first-pass approval, decision rounds, time to first decision and queue age. Sample numbers are illustrative.
+2. **15–30s:** Open **New submission** and type “Guaranteed approval. No credit check.” into the copy. See the fix-or-justify gate immediately. Add creative B to see checks for each variant, then cancel.
+3. **30–45s:** Switch identity to **Taylor Reed**. Open **A more confident first step**, choose **Revise approved asset**, and replace the space after the first sentence with a line break. Submit.
+4. **45–60s:** Switch to **Sarah Chen**. Inspect the visible whitespace diff, enter a rationale and **Approve delta**. The original expiration remains; the new version gets its own decision snapshot.
 
-| Situation | Implemented response |
-| --- | --- |
-| Disclosure requirements differ by product and state | Combine product checks with every selected state's checks. CA, NY, and TX use explicitly fictional policy fixtures; unsupported/nationwide scope blocks approval. |
-| An affiliate ad is acceptable but its landing page overpromises | Capture and review both texts together. Require a named partner and HTTPS destination. |
-| A rush request tries to jump the queue | Requested deadlines and self-escalations do not change priority. An independent lead must approve rush treatment with a reason; repeat requests are blocked. Distribution holds stay first, followed by approved rushes, then normal reviews in submission order. |
-| A brief needs revisions versus a proposal that must not proceed | Request changes keeps the revision path open. Reject closes the campaign and retains an exportable decision snapshot. Renaming an otherwise identical rejected offer/scope cannot bypass rejection. |
-| Creative stays unchanged but states, audience, or destination change | Create a new version and invalidate evidence and sign-offs. State-only revisions also require fresh review; rush priority does not carry forward. |
-| Evidence expires or rates/rules change after approval | Approval cannot outlive evidence. A lead-published product policy/offer-terms update removes older approvals' clearance. Immediate revocation preserves the original decision. |
-| An author tries to approve their own work, or a reviewer leaves | Block author/contributor approval. Require an independent reviewer and a reasoned handoff; reset reviewer attestations. |
-| Automated screening misses a problem | Reviewers add manual findings. Product-specific flags cover promotional periods and mortgage prequalification limitations; rewards percentages alone are not treated as loan rates. |
-| Two tabs write simultaneously, or browser storage fails | Reject stale writes under a shared lock. Preserve open drafts on save failures and offer recovery for corrupt data instead of silently replacing it. |
+Use a fresh browser workspace for the sample path. To explore further, submit your own campaign, request changes as its assigned reviewer, revise as its owner, then revisit Overview.
 
-## Scope and tradeoffs
+## How I would judge success
 
-This is a **GitHub Pages, browser-local prototype**. Custom identities demonstrate permissions; they are not authenticated accounts. Data is not shared across devices, and local audit records are not tamper-proof. Older records without structured states remain readable but need revised scope before clearance.
+The dashboard records approvals, requests for changes and rejections. First-pass approval means the first decision approved v1. Average decision rounds counts all recorded decisions per measured asset. First-decision time starts at original submission; round turnaround starts at each submission/reopen. Open rounds appear in queue age instead of looking like completed work. A paired A/B brief counts as one asset.
 
-Policy fixtures and pre-checks are illustrative, not legal guidance. Evidence is manually captured. Rate/rule updates require explicit publication; there is no live rate feed or affiliate monitoring, and publishing policy prose does not generate executable rules. A real team pilot needs shared persistent storage, server-enforced roles, durable audit history, and notifications.
+These are calendar-time measures, **not measured hands-on reviewer time**. Existing browser records with incomplete decision history are excluded rather than guessed. New submissions are tracked; fresh samples include illustrative history.
 
-The **3:53 captioned video** shows real cursor interactions and campaign creation. It predates the state, rush, and rejection additions; test those in the live app.
+For a pilot, compare similar campaign mixes and staffing against Excel/email: fewer rounds, less observed reviewer effort, and more cleared assets per reviewer per week. Track post-approval corrections too. More decisions alone could mean more churn, not more throughput. No uplift is claimed here.
 
-## Build and validation
+## Edge cases that matter
 
-React, TypeScript, and Vite. Node.js 22+:
+- **Small edits can have big consequences.** Fast-lane eligibility excludes wording, numbers, states, audience, destination, policy changes, expired evidence and reviewer handoffs. It cannot extend the original approval or bypass open findings.
+- **Urgency is not permission.** Rush requires an independent lead and a justification. Repeat requests cannot game priority; distribution holds remain first.
+- **Fixable versus unacceptable.** Request changes permits revision. Rejection closes the campaign; renaming an identical rejected proposal does not reopen it.
+- **Approval has a scope and a shelf life.** Product/state checks combine across selected markets. Unsupported markets block approval. Evidence expiry, published policy updates and revocation stop clearance while retaining history.
+- **Independence and persistence.** Authors cannot approve their own work. Stale-tab writes are rejected, failed saves preserve drafts, and damaged local records have a recovery path.
 
-```sh
-npm ci
-npm run dev
-npm test
-npm run build
-```
+## Limits and deliberate tradeoffs
 
-**67 automated tests** cover workflow gates, domain edge cases, and browser persistence. Production build and desktop/mobile browser checks passed, including multi-state intake, rush approval, state-only revisions, rejection snapshots, and mobile form layout. GitHub Actions tests and builds before deployment.
+GitHub Pages hosts a React/TypeScript/Vite app with browser-local storage. Identities simulate roles; they are not authentication. There is no shared database, server-enforced access control or tamper-proof audit log.
 
-Workflow rules: `src/domain.ts` · Persistence: `src/storage.ts` · UI: `src/components/` · Video source/rendering: `media-source/` and `scripts/render_walkthrough.py`.
+Checks and CA/NY/TX policies are fictional fixtures, not legal advice. Literal text checks can miss context. Evidence, destinations and rate/rule updates are manual. Two variants must share their scope and receive one decision; split them into separate campaigns for independent clearance. Assignment uses counts, not reviewer expertise or estimated effort. SLA calendars and active-time tracking are outside this prototype.
+
+## Run it
+
+Node.js 22+: `npm ci`, `npm run dev`. Validate with `npm test` and `npm run build`.
+
+87 tests cover workflow safeguards, intake gates, variants, delta approval, assignment, metrics and persistence. GitHub Actions tests and builds before deploying. Rules live in `src/domain.ts`, persistence in `src/storage.ts`, and forms/review UI in `src/components/`.

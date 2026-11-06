@@ -103,7 +103,7 @@ describe("follow-up bypass prevention", () => {
   it("cannot rename an identical rejected offer to bypass its terminal decision", () => {
     let w = applyAction(seedWorkspace(), { type: "submit", data: brief }, "Alex Morgan");
     const newId = w.campaigns[0].id;
-    w = applyAction(w, { type: "reject", id: newId, reason: why }, "Sarah Chen");
+    w = applyAction(w, { type: "reject", id: newId, reason: why }, w.campaigns[0].reviewer);
     expect(() => applyAction(w, { type: "submit", data: { ...brief, title: "A renamed identical offer" } }, "Alex Morgan")).toThrow(/were rejected/);
     const changed = applyAction(w, { type: "submit", data: { ...brief, copy: brief.copy + " New qualified offer terms." } }, "Alex Morgan");
     expect(changed.campaigns[0].status).toBe("In review");

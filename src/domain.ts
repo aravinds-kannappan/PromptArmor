@@ -27,6 +27,7 @@ export type Finding = {
   resolved: boolean;
   note: string;
   source?: "Pre-check" | "Reviewer";
+  quote?: string;
 };
 export type Evidence = {
   id: string;
@@ -42,6 +43,8 @@ export type Snapshot = {
   version: number;
   title: string;
   copy: string;
+  variantCopy?: string;
+  justification?: string;
   scope: string;
   jurisdictions?: string;
   product: string;
@@ -70,12 +73,16 @@ export type Campaign = {
   status: Status;
   version: number;
   copy: string;
+  variantCopy?: string;
+  justification?: string;
   findings: Finding[];
   checks: string[];
   history: { at: string; text: string }[];
   versions: {
     version: number;
     copy: string;
+    variantCopy?: string;
+    justification?: string;
     scope?: string;
     destinationCopy?: string;
     review?: Snapshot;
@@ -93,6 +100,9 @@ export type Campaign = {
   submittedAt: string;
   rush?: { status: "Pending" | "Approved" | "Denied"; requestedBy: string; reason: string; version: number; decidedBy?: string; decision?: string };
   rejection?: Snapshot;
+  deltaBase?: Snapshot;
+  roundStartedAt?: string;
+  decisions?: { kind: "approve" | "request" | "reject"; at: string; startedAt: string; version: number }[];
 };
 export type Policy = {
   product: string;
@@ -163,9 +173,12 @@ export function safeUrl(s: string) {
     return false;
   }
 }
-export function scan(copy: string, product?: string): Finding[] {
+export function scan(copy: string, product?: string, channel?: string): Finding[] {
   const text = copy.normalize("NFKC");
   const rules: [string, boolean, string, string][] = [
+    ["no-credit", /no\s+credit\s+check/i.test(text), "No credit check claim", "Remove this claim or explain the specific stage and supporting terms for independent review."],
+    ["opt-out", channel === "Email" && !/unsubscribe|opt[ -]?out/i.test(text), "Email opt-out not captured", "Include the unsubscribe mechanism or explain where the email template provides it."],
+    ["mortgage-approved", product === "Mortgage" && /(?:you(?:'re| are) approved|already approved|mortgage approved)/i.test(text), "Prequalification presented as approval", "Prequalification is not a final lending decision. Verify and correct the claim."],
     ["promotion", product === "Credit cards" && /(?:introductory|intro|promotional|0%)/i.test(text) && !/(?:months?|until|through|expires)/i.test(text), "Promotional period not captured", "Capture the promotional end date or duration, qualifying transactions, and the terms that apply afterward. A reviewer must verify these against the offer terms."],
     ["mortgage", product === "Mortgage" && /(?:prequalified|prequalification|preapproved)/i.test(text) && !/(?:not a commitment|not guaranteed|subject to|does not guarantee)/i.test(text), "Prequalification limitations not captured", "Verify that the copy distinguishes prequalification from a lending commitment and explains the remaining conditions."],
 
@@ -335,6 +348,8 @@ export function snapshot(
     version: c.version,
     title: c.title,
     copy: c.copy,
+    ...(c.variantCopy ? { variantCopy: c.variantCopy } : {}),
+    ...(c.justification ? { justification: c.justification } : {}),
     scope: c.scope,
     jurisdictions: c.jurisdictions,
     product: c.product,
@@ -356,6 +371,8 @@ export type Intake = {
   reviewer?: string;
   title: string;
   copy: string;
+  variantCopy?: string;
+  justification?: string;
   product: string;
   channel: string;
   partner: string;
@@ -376,7 +393,7 @@ export type Action =
       note: string;
       resolved: boolean;
     }
-  | { type: "finding"; id: string; title: string; detail: string }
+  | { type: "finding"; id: string; title: string; detail: string; quote?: string }
   | { type: "check"; id: string; check: string; checked: boolean }
   | {
       type: "evidence";
@@ -384,7 +401,7 @@ export type Action =
       data: Omit<Evidence, "id" | "version" | "addedBy" | "addedAt">;
     }
   | { type: "removeEvidence"; id: string; evidenceId: string }
-  | { type: "approve"; id: string; expires: string; note: string }
+  | { type: "approve" | "approveDelta"; id: string; expires: string; note: string }
   | {
       type:
         | "request"
@@ -404,6 +421,8 @@ export type Action =
       type: "revise";
       id: string;
       copy: string;
+      variantCopy?: string;
+      justification?: string;
       scope: string;
       jurisdictions?: string;
       destination: string;
@@ -516,6 +535,7 @@ export function applyAction(
           normalize(d.partner) !== "in-house",
         "Affiliate campaigns require a named partner, HTTPS destination, and landing-page copy (20+ characters).",
       );
+    validateIntakeChecks(d);
     requireThat(!w.campaigns.some(c => c.status === "Rejected" && normalize(c.copy) === normalize(d.copy) && c.product === d.product && c.channel === d.channel && normalize(c.partner) === normalize(d.partner) && c.jurisdictions === d.jurisdictions && normalize(c.scope) === normalize(d.scope)), "This exact offer and distribution scope were rejected. Submit a materially different proposal; renaming it does not reopen the decision.");
     requireThat(
       !w.campaigns.some(
@@ -546,12 +566,13 @@ export function applyAction(
       contributors: [actor],
       reviewer:
         d.reviewer ||
-        membersOf(w).find((m) => m.name !== actor && isReviewer(m.name, w))!
-          .name,
+        suggestedReviewer(w, actor)!,
       status: "In review",
       version: 1,
       policyVersion: currentPolicy(w, d.product),
-      findings: scan(d.copy + "\n" + d.destinationCopy, d.product),
+      findings: campaignScan(d),
+      decisions: [],
+      roundStartedAt: at,
       checks: [],
       evidence: [],
       approvals: [],
@@ -600,6 +621,7 @@ export function applyAction(
           "Choose another independent compliance reviewer.",
         );
         reason(action.reason);
+        c.deltaBase = undefined;
         c.reviewer = action.reviewer;
         c.checks = [];
         c.findings.forEach((f) => {
@@ -638,6 +660,8 @@ export function applyAction(
         break;
       }
       case "finding":
+        c.deltaBase = undefined;
+        requireThat(!action.quote || c.copy.includes(action.quote) || !!c.variantCopy?.includes(action.quote) || c.destinationCopy.includes(action.quote), "Quoted text must exist in this version.");
         reviewer();
         reason(action.detail);
         requireThat(
@@ -651,10 +675,12 @@ export function applyAction(
           note: "",
           resolved: false,
           source: "Reviewer",
+          quote: action.quote,
         });
         event(c, `Added manual finding: ${action.title}`);
         break;
       case "evidence":
+        c.deltaBase = undefined;
         requireThat(
           c.status === "In review" &&
             (actor === c.owner || actor === c.reviewer || isLead(actor, w)),
@@ -690,6 +716,7 @@ export function applyAction(
         );
         break;
       case "removeEvidence":
+        c.deltaBase = undefined;
         reviewer();
         requireThat(
           c.evidence.some((e) => e.id === action.evidenceId),
@@ -702,6 +729,13 @@ export function applyAction(
           "Removed evidence; review checks reset. Historical decision snapshots retained.",
         );
         break;
+      case "approveDelta":
+        reviewer();
+        requireThat(deltaEligible(c, currentPolicy(w, c.product), today), "Delta approval is no longer eligible; use full review.");
+        requireThat(action.expires <= c.deltaBase!.expires, "Delta approval cannot extend the original expiration.");
+        c.checks = [...c.deltaBase!.checks];
+        c.evidence = c.deltaBase!.evidence.map(e => ({ ...e, version: c.version }));
+        // Fall through: the same independence, evidence, expiry and policy gates apply.
       case "approve": {
         c.expires = action.expires;
         const error = approvalError(
@@ -713,6 +747,7 @@ export function applyAction(
         );
         requireThat(!error, error || "Approval blocked.");
         reason(action.note);
+        recordDecision(c, "approve", at);
         c.status = "Approved";
         c.approvals.push(snapshot(c, actor, action.note, at));
         event(
@@ -742,6 +777,7 @@ export function applyAction(
         reviewer();
         reason(action.reason);
         c.rejection = snapshot(c, actor, action.reason, at);
+        recordDecision(c, "reject", at);
         c.status = "Rejected";
         c.rush = undefined;
         event(c, `Rejected campaign (closed, no revision or launch): ${action.reason}`);
@@ -749,14 +785,16 @@ export function applyAction(
       case "request":
         reviewer();
         reason(action.reason);
+        recordDecision(c, "request", at);
+        c.deltaBase = undefined;
         c.status = "Changes requested";
         c.rush = undefined;
         event(c, `Requested changes on v${c.version}: ${action.reason}`);
         break;
       case "revise":
         requireThat(
-          c.status === "Changes requested" && actor === c.owner,
-          "Only the campaign owner can submit a requested revision.",
+          ["Changes requested", "Approved"].includes(c.status) && actor === c.owner,
+          "Only the campaign owner can revise an approved asset or a requested revision.",
         );
         requireThat(
           action.copy.trim().length >= 20 &&
@@ -772,11 +810,14 @@ export function applyAction(
               action.destinationCopy.trim().length >= 20,
             "Affiliate revisions require HTTPS destination and landing-page copy.",
           );
+        validateIntakeChecks({ ...c, ...action });
+        const base = c.status === "Approved" && !launchBlockers(c, currentPolicy(w, c.product), today).length ? snapshot(c, c.reviewer, "Delta baseline", at) : undefined;
         const states = action.jurisdictions ?? c.jurisdictions;
         requireThat(typeof states === "string" && jurisdictionCodes(states).length > 0 && jurisdictionCodes(states).every(x => x in jurisdictionOptions), "Select distribution states for the revision.");
         requireThat(!action.destination || safeUrl(action.destination), "Destination must be a valid HTTPS URL without credentials.");
         const normalizedStates = [...new Set(jurisdictionCodes(states))].sort().join(",");
         requireThat(
+          (action.variantCopy ?? c.variantCopy ?? "") !== (c.variantCopy ?? "") ||
           normalizedStates !== c.jurisdictions ||
           action.copy.trim() !== c.copy ||
             action.scope.trim() !== c.scope ||
@@ -792,6 +833,10 @@ export function applyAction(
           review: snapshot(c, actor, "Prior review state before revision", at),
         });
         c.version++;
+        c.deltaBase = base;
+        c.roundStartedAt = at;
+        c.variantCopy = action.variantCopy ?? c.variantCopy;
+        c.justification = action.justification;
         c.jurisdictions = normalizedStates;
         c.rush = undefined;
         c.copy = action.copy.trim();
@@ -802,7 +847,7 @@ export function applyAction(
         c.status = "In review";
         c.checks = [];
         c.evidence = [];
-        c.findings = scan(c.copy + "\n" + c.destinationCopy, c.product);
+        c.findings = campaignScan(c);
         c.expires = "";
         c.policyVersion = currentPolicy(w, c.product);
         event(
@@ -818,6 +863,8 @@ export function applyAction(
         );
         reason(action.reason);
         c.status = "In review";
+        c.deltaBase = undefined;
+        c.roundStartedAt = at;
         c.checks = [];
         c.expires = "";
         c.findings.forEach((f) => {
@@ -1043,6 +1090,8 @@ export function seed(): Campaign[] {
           addedAt: at,
         },
       ];
+    c.roundStartedAt = c.submittedAt;
+    c.decisions = approved ? [{kind: "approve", at, startedAt: c.submittedAt, version: 1}] : c.status === "Changes requested" ? [{kind: "request", at: new Date(Date.parse(at) + 3600000).toISOString(), startedAt: c.submittedAt, version: 1}] : [];
     if (approved) c.checks = reviewChecks(c);
     if (approved)
       c.approvals = [
@@ -1147,6 +1196,9 @@ export function validateWorkspace(value: unknown): asserts value is Workspace {
     );
     ids.add(c.id);
     requireThat(c.jurisdictions === undefined || (typeof c.jurisdictions === "string" && jurisdictionCodes(c.jurisdictions).every(x => x in jurisdictionOptions)), "Invalid jurisdiction data.");
+    for (const key of ["variantCopy", "justification", "roundStartedAt"] as const) requireThat(c[key] === undefined || typeof c[key] === "string", `Invalid ${key}.`);
+    if (c.decisions !== undefined) requireThat(Array.isArray(c.decisions) && c.decisions.every(d => ["approve", "request", "reject"].includes(d.kind) && Number.isFinite(Date.parse(d.at)) && Number.isFinite(Date.parse(d.startedAt)) && Date.parse(d.at) >= Date.parse(d.startedAt) && Number.isInteger(d.version)), "Invalid decision metrics.");
+    if (c.deltaBase) requireThat(typeof c.deltaBase.copy === "string" && Array.isArray(c.deltaBase.checks) && Array.isArray(c.deltaBase.evidence), "Invalid delta baseline.");
     if (c.rush) requireThat(["Pending", "Approved", "Denied"].includes(c.rush.status) && typeof c.rush.reason === "string" && typeof c.rush.requestedBy === "string" && Number.isInteger(c.rush.version), "Invalid rush record.");
 
     for (const key of [
@@ -1235,4 +1287,67 @@ export function validateWorkspace(value: unknown): asserts value is Workspace {
     ),
     "Invalid policy record.",
   );
+}
+
+/** Literal pre-checks are intake gates, never automatic compliance decisions. */
+export const hardFinding = (f: Finding) => ["guarantee", "no-credit"].includes(f.id.split(":").at(-1)!);
+export function campaignScan(c: { copy: string; variantCopy?: string; destinationCopy: string; product: string; channel: string }): Finding[] {
+  return [
+    ...scan(c.copy, c.product, c.channel).map(f => ({ ...f, id: `A:${f.id}`, title: `Creative A · ${f.title}` })),
+    ...(c.variantCopy ? scan(c.variantCopy, c.product, c.channel).map(f => ({ ...f, id: `B:${f.id}`, title: `Creative B · ${f.title}` })) : []),
+    ...scan(c.destinationCopy, c.product).map(f => ({ ...f, id: `page:${f.id}`, title: `Destination · ${f.title}` })),
+  ];
+}
+function validateIntakeChecks(c: { copy: string; variantCopy?: string; destinationCopy: string; product: string; channel: string; justification?: string }) {
+  requireThat(!c.variantCopy || (c.variantCopy.trim().length >= 20 && c.variantCopy.length <= 5000 && normalize(c.variantCopy) !== normalize(c.copy)), "Variant B must be distinct and contain 20–5,000 characters.");
+  if (campaignScan(c).some(hardFinding)) reason(c.justification || "");
+}
+export function reviewerLoad(w: Workspace, name: string) {
+  return w.campaigns.filter(c => c.reviewer === name && ["In review", "Changes requested", "Revoked"].includes(c.status)).length;
+}
+export function suggestedReviewer(w: Workspace, author: string) {
+  return membersOf(w).filter(m => m.name !== author && isReviewer(m.name, w)).sort((a, b) => reviewerLoad(w, a.name) - reviewerLoad(w, b.name) || a.name.localeCompare(b.name))[0]?.name;
+}
+/** Preserve every non-whitespace character: numbers, punctuation and wording cannot qualify. */
+export function deltaEligible(c: Campaign, policy: number, today = localDay()) {
+  const b = c.deltaBase;
+  if (!b || c.status !== "In review" || c.escalated || b.by !== c.reviewer || b.version + 1 !== c.version || b.policyVersion !== policy || c.policyVersion !== policy || b.expires <= today || c.findings.length) return false;
+  const stable = ["title", "product", "channel", "partner", "scope", "jurisdictions", "destination", "destinationCopy"] as const;
+  return stable.every(k => b[k] === c[k]) &&
+    c.copy.replace(/\s+/g, " ").trim() === b.copy.replace(/\s+/g, " ").trim() &&
+    (c.variantCopy || "") === (b.variantCopy || "") &&
+    b.evidence.length > 0 && b.evidence.every(e => e.validThrough >= today) &&
+    reviewChecks(c).every(x => b.checks.includes(x));
+}
+function recordDecision(c: Campaign, kind: "approve" | "request" | "reject", at: string) {
+  if (!c.decisions) return; // Do not invent missing historical rounds for legacy records.
+  c.decisions.push({ kind, at, startedAt: c.roundStartedAt || c.submittedAt, version: c.version });
+}
+export function elapsedHours(start: string, now = Date.now()) {
+  const hours = (now - Date.parse(start)) / 3600000;
+  return Number.isFinite(hours) ? Math.max(0, hours) : 0;
+}
+export function throughputMetrics(w: Workspace, now = Date.now()) {
+  const measured = w.campaigns.filter(c => c.decisions?.length);
+  const times = measured.map(c => elapsedHours(c.submittedAt, Date.parse(c.decisions![0].at))).sort((a,b) => a-b);
+  const median = (v: number[]) => v.length ? (v[Math.floor((v.length - 1)/2)] + v[Math.floor(v.length/2)]) / 2 : null;
+  const rounds = measured.flatMap(c => c.decisions!);
+  const ages = w.campaigns.filter(c => c.status === "In review").map(c => elapsedHours(c.roundStartedAt || c.submittedAt, now)).sort((a,b) => a-b);
+  return {
+    sample: measured.length,
+    firstPass: measured.length ? measured.filter(c => c.decisions![0].kind === "approve" && c.decisions![0].version === 1).length / measured.length * 100 : null,
+    rounds: measured.length ? rounds.length / measured.length : null,
+    firstDecision: median(times),
+    roundHours: rounds.length ? rounds.reduce((n,d) => n + elapsedHours(d.startedAt, Date.parse(d.at)), 0) / rounds.length : null,
+    queueAge: median(ages),
+    decisions: rounds.length,
+  };
+}
+/** Compact contiguous diff. Unchanged prefix/suffix remain available for context. */
+export function textDiff(before: string, after: string) {
+  let start = 0;
+  while (start < before.length && start < after.length && before[start] === after[start]) start++;
+  let end = 0;
+  while (end < before.length-start && end < after.length-start && before[before.length-1-end] === after[after.length-1-end]) end++;
+  return { prefix: before.slice(0,start), removed: before.slice(start, before.length-end), added: after.slice(start,after.length-end), suffix: end ? before.slice(-end) : "" };
 }
