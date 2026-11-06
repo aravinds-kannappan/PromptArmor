@@ -44,11 +44,14 @@ For a pilot, compare similar campaign mixes and staffing against Excel/email: fe
 - **Approval has a scope and a shelf life.** Product/state checks combine across selected markets. Unsupported markets block approval. Evidence expiry, published policy updates and revocation stop clearance while retaining history.
 - **Independence and persistence.** Authors cannot approve their own work. Stale-tab writes are rejected, failed saves preserve drafts, and damaged local records have a recovery path.
 
-## Limits and deliberate tradeoffs
+## Product decisions and tradeoffs
 
-GitHub Pages hosts a React/TypeScript/Vite app with browser-local storage. Identities simulate roles; they are not authentication. There is no shared database, server-enforced access control or tamper-proof audit log.
-
-Checks and CA/NY/TX policies are fictional fixtures, not legal advice. Literal text checks can miss context. Evidence, destinations and rate/rule updates are manual. Two variants must share their scope and receive one decision; split them into separate campaigns for independent clearance. Assignment uses counts, not reviewer expertise or estimated effort. SLA calendars and active-time tracking are outside this prototype.
+- **Fix or justify, rather than silently reject a brief.** Obvious claim flags require a correction or explanation before submission. This catches avoidable rework while leaving room for context the text checks miss. The reviewer still has to resolve the finding.
+- **Keep delta approval narrow.** Only whitespace changes qualify. That saves repeat verification on layout edits, but even a one-word change goes through full review because it could change the promise being made.
+- **Give A/B variants one decision.** Shared scope and evidence reduce duplicate setup. The cost is that a problem in B holds up A too; campaigns needing independent clearance should be submitted separately.
+- **Suggest assignment; don’t dictate it.** Open-work counts make the default less arbitrary. They don’t capture expertise or review difficulty, so the marketer can choose another independent reviewer.
+- **Make exceptions explicit.** Rush needs an independent lead’s rationale, and unsupported states block approval. This adds a step to unusual requests instead of letting urgency or incomplete coverage quietly weaken review. The state catalog uses fictional fixtures to demonstrate this choice.
+- **Bind approval to captured terms.** Reviewers verify saved evidence and destination copy; leads publish rate/rule changes that invalidate old clearance. This makes the reviewed offer traceable, but subsequent external changes still need someone to identify and record them.
 
 ## Run it
 
